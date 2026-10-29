@@ -1,0 +1,14 @@
+# never commit game files / keys / dumps
+*.nsp
+*.nca
+*.xci
+*.tik
+prod.keys
+main
+main_dec.bin
+text.bin
+exefs_v102/
+nsp_v102/
+# local saves
+bak/
+*.sav
