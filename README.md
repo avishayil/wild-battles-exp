@@ -1,6 +1,6 @@
 # Wild Battles EXP — native experience for wild KOs in Pokémon: Let's Go, Pikachu!
 
-**Alpha (`v0.1.0-alpha`).** A static IPSwitch (`.pchtxt`) mod for **Pokémon: Let's Go,
+**Alpha (`v0.3.0-alpha`).** A static IPSwitch (`.pchtxt`) mod for **Pokémon: Let's Go,
 Pikachu! v1.0.2** (Switch, title `010003F003A34000`) that makes **defeating** a wild
 Pokémon award normal battle **experience** — the way the main-series games do — on top of
 RicoSantos' *Wild Battles* (PWB1) mod.
@@ -103,6 +103,18 @@ docs/                 ENGINEERING_LOG, REPRODUCE, FUNCTION_MAP
 research/             raw experiment log, investigation notes, original findings
 CHANGELOG.md, CREDITS.md
 ```
+
+## Install from a release zip (Eden)
+Grab the zip for ONE variant from GitHub Releases, then in Eden: right-click the game →
+**Properties → Add-Ons → Import Mod from ZIP** and pick the zip. Enable the mod, disable any
+other variant, and restart the game.
+
+## Legal
+This is an unofficial, non-commercial fan project, **not affiliated with or endorsed by
+Nintendo, Game Freak, Creatures Inc., or The Pokémon Company**. All game trademarks and
+copyrights belong to their respective owners. This repository contains **no game code,
+assets, or keys** — only original tooling and address-based patch descriptions. A legally
+owned copy of the game is required. Full notice: [`DISCLAIMER.md`](DISCLAIMER.md).
 
 ## Credits
 Base **Wild Battles (PWB1)** mod by **RicoSantos**. Native-EXP mechanism and address map

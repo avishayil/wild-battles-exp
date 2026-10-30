@@ -12,3 +12,4 @@ nsp_v102/
 # local saves
 bak/
 *.sav
+dist/
