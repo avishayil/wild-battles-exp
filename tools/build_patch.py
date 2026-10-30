@@ -52,7 +52,9 @@ PCHTXT_OFF = 0x100  # pchtxt record addr = mem offset + 0x100
 HOOK_A    = 0x28BF34   # state-4 handler: ldr x20,[x1,#0x60]   (clear instant-end flag)
 HOOK_C    = 0xA9C650   # model-joint fn entry: sub sp,sp,#0x70  (missing-resource guard)
 HOOK_ST   = 0x28BD20   # battle-event update entry: sub sp,sp,#0x70 (reset + result rewrite)
-HOOK_A2   = 0x9D8A44   # in XP predicate 0x9D8A30: cbz w9,#0x9d8a58 (bypass +0x4A4 gate)
+HOOK_P    = 0x9D8A30   # XP-eligibility predicate entry: ldr x8,[x0,#0x80] (conditional PWB override)
+HOOK_M    = 0x3059B8   # inside PWB's injected setup routine: str w9,[x20,#0x298] (PWB marker write)
+                       #   runs only for PWB's synthesized battles -> set pwb_encounter scratch flag
 HOOK_R    = 0x9E41D0   # BTL_POKEPARAM reflect fn entry: str x23,[sp,#-0x40]! (wild HP capture)
 HOOK_E    = 0x319EC4   # after-battle processor (entry 0x319A60): str w8,[x19,#0x68] next-state write
 CAVE_BASE = 0xD32BA8   # start of the loader-provided .text page padding (zero-filled, RX)
@@ -90,21 +92,32 @@ STP_910, LDP_910 = 0xA9BF2BE9, 0xA8C12BE9
 ADRP_SCRATCH = 0xD0008D70
 ADD_F00      = 0x913C0210
 
+PWB_MARKER_WORD = 0xB9029A89  # str w9,[x20,#0x298] (PWB's own, at mem 0x3059B8 after PWB applies)
 def disp(text, mem):  # the original instruction word displaced by a hook
+    if mem == 0x3059B8:
+        return PWB_MARKER_WORD
     return struct.unpack_from('<I', text, mem)[0]
 
 def ret_branch(body, base, target):
     return b(base + len(body)*4, target)
 
 # ----- the three code caves (bodies in memory-offset space at CAVE_BASE+) -----
-def cave_A(text, base):   # PoC A: clear instant-end flag [evt+0x574]&=~0x80, set armed
+def cave_A(text, base):   # PoC A v3: clear instant-end flag ONLY for a PWB encounter; set armed
+    # x19 = evt ; x1 = handler ctx ([x1+0x60] = command-menu object)
+    # pwb_encounter (scratch +0xF8) is set by HOOK_M from PWB's own setup routine, so it is
+    # true only for PWB's synthesized battles -> a real legendary/Snorlax is never touched.
     A = lambda i: base+i*4
-    body = [STP_1617, ldr_x(16,1,0x60), cbz_x(16,A(2),A(16)), ldr_w(17,19,0x574),
-            movz_w(16,0x80), tst_w(17,16), bcond(0,A(6),A(16)), bic_w(17,17,16),
-            str_w(17,19,0x574), ADRP_SCRATCH, ADD_F00, ldr_w(17,16,0x34),
-            addi_w(17,17,1), str_w(17,16,0x34), movz_w(17,1), strb_w(17,16,0xFC),
-            LDP_1617, disp(text,HOOK_A)]
-    return body + [ret_branch(body, base, HOOK_A+4)]
+    Lskip = A(19)                                              # index of the first restore (LDP_1617)
+    w = [STP_910, STP_1617, ADRP_SCRATCH, ADD_F00,
+         ldrb_w(17,16,0xF8), cbz_w(17,A(5),Lskip),              # 4,5  pwb_encounter?
+         ldr_x(9,1,0x60),    cbz_x(9,A(7),Lskip),               # 6,7  command menu up?
+         ldr_w(17,19,0x574), movz_w(10,0x80), tst_w(17,10), bcond(0,A(11),Lskip),  # 8-11 flag 0x80 set?
+         bic_w(17,17,10), str_w(17,19,0x574),                   # 12,13 clear it
+         ldr_w(17,16,0x34), addi_w(17,17,1), str_w(17,16,0x34), # 14-16 clear_cnt++
+         movz_w(17,1), strb_w(17,16,0xFC),                      # 17,18 armed = 1
+         LDP_1617, LDP_910,                                     # A(19) = Lskip (restores)
+         disp(text,HOOK_A)]
+    return w + [ret_branch(w, base, HOOK_A+4)]
 
 def cave_C(text, base):   # PoC C: model-joint guard (recomp port); return x0=0 if resources missing
     A = lambda i: base+i*4
@@ -139,6 +152,28 @@ def cave_ST(text, base):  # entry hook: reset flags@state0; result 1->3 @state5 
          LDP_1617, LDP_910, disp(text,HOOK_ST)]
     return w + [ret_branch(w, base, HOOK_ST+4)]
 
+def cave_M(text, base):  # PWB marker hook: replay str w9,[x20,#0x298] + set pwb_encounter (+0xF8)
+    A = lambda i: base+i*4
+    w = [STP_1617, ADRP_SCRATCH, ADD_F00,
+         movz_w(17,1), strb_w(17,16,0xF8),      # pwb_encounter = 1
+         LDP_1617, disp(text,HOOK_M)]           # disp = str w9,[x20,#0x298]
+    return w + [ret_branch(w, base, HOOK_M+4)]
+
+def cave_P(text, base):  # A2 v2: conditional XP eligibility — PWB profile only, else ORIGINAL predicate
+    # x0 = battle controller; setup = [x0+0x80]. If setup matches the PWB profile
+    # ([+0x4A4]==1 && [+0x494]==0) return w0=1 (eligible); otherwise fall through to the
+    # untouched original predicate (including its +0x4A4 gate).
+    A = lambda i: base+i*4
+    Lorig = A(16)
+    w = [STP_1617,
+         ldr_x(16,0,0x80), cbz_x(16,A(2),Lorig),
+         ldrb_w(17,16,0x4A4), cmp_i(17,1), bcond(NE,A(5),Lorig),
+         ldr_w(17,16,0x494), cbnz_w(17,A(7),Lorig),
+         ADRP_SCRATCH, ADD_F00, ldr_w(17,16,0xE4), addi_w(17,17,1), str_w(17,16,0xE4),  # a2_pwb_cnt
+         LDP_1617, movz_w(0,1), RET,                                 # eligible: w0=1
+         LDP_1617, disp(text,HOOK_P)]                                # A(16)=Lorig: restore + original
+    return w + [ret_branch(w, base, HOOK_P+4)]
+
 def cave_R(text, base):  # reflect capture: wild (slot>=6) HP -> scratch +0xC8, have=1 @+0xFE
     A = lambda i: base+i*4
     LO = 3
@@ -158,6 +193,7 @@ def cave_E(text, base):  # A4: after-battle next-state redirect 4 -> 1 when evol
          cmp_i(8,4), bcond(NE,A(6),Lstore),            # only the would-skip (state 4) transition
          movz_w(8,1),                                  # -> state 1: the evolution check
          strb_w(31,16,0xFF),                           # one-shot clear (Lstore)
+         strb_w(31,16,0xF8),                           # clear pwb_encounter every after-battle
          LDP_1617, disp(text,HOOK_E)]
     # NOTE: index 8 (strb wzr) only runs on the redirect path? No: Lstore=A(8) IS the strb -> it
     # also runs on the skip paths, clearing a stale flag either way (safe: flag wants clearing).
@@ -179,7 +215,9 @@ def main():
     cS = cC + len(wC)*4;       wS = cave_ST(text, cS)
     cR = cS + len(wS)*4;       wR = cave_R(text, cR)
     cE = cR + len(wR)*4;       wE = cave_E(text, cE)
-    end = cE + len(wE)*4
+    cP = cE + len(wE)*4;       wP = cave_P(text, cP)
+    cM = cP + len(wP)*4;       wM = cave_M(text, cM)
+    end = cM + len(wM)*4
     assert end <= 0xD33000, "caves overflow .text padding (0xD33000)"
 
     # verify every cave: returns land correctly, displaced originals preserved
@@ -189,44 +227,67 @@ def main():
         ('C', wC, cC, HOOK_C+4,  disp(text,HOOK_C)),
         ('ST',wS, cS, HOOK_ST+4, disp(text,HOOK_ST)),
         ('R', wR, cR, HOOK_R+4,  disp(text,HOOK_R)),
-        ('E', wE, cE, HOOK_E+4,  disp(text,HOOK_E))]:
+        ('E', wE, cE, HOOK_E+4,  disp(text,HOOK_E)),
+        ('P', wP, cP, HOOK_P+4,  disp(text,HOOK_P)),
+        ('M', wM, cM, HOOK_M+4,  disp(text,HOOK_M))]:
         ins = dis(w, base)
         assert ins[-1].mnemonic=='b' and int(ins[-1].op_str[1:],16)==ret, (name,'ret',ins[-1].op_str)
         assert struct.pack('<I',w[-2])==struct.pack('<I',dorig), (name,'displaced')
-        # STACK-BALANCE: compute push/pop depth linearly; every internal branch must land
-        # on an instruction with the same depth, so pushes/pops stay paired on all paths.
-        depth_before = {}
-        d_cur = 0
-        for i in ins:
-            depth_before[i.address] = d_cur
-            if i.mnemonic=='stp' and '#-' in i.op_str and i.op_str.endswith('!'): d_cur += 1
-            if i.mnemonic=='ldp' and '], #' in i.op_str: d_cur -= 1
-        assert d_cur == 0, (name,'net stack imbalance at cave end')
-        for br in ins:
-            if br.mnemonic in ('cbz','cbnz') or br.mnemonic.startswith('b.'):
-                tgt = int(br.op_str.split('#')[-1],16)
-                if base <= tgt < base+len(w)*4:   # internal branch
-                    assert depth_before[tgt] == depth_before[br.address], \
-                        (name,'branch crosses push/pop boundary',hex(br.address),hex(tgt),
-                         depth_before[br.address],depth_before[tgt])
-    # A2 in-place bypass: cbz w9,#0x9d8a58 -> b #0x9d8a58
-    assert disp(text,HOOK_A2)==0x340000A9, "0x9D8A44 is not the expected cbz; wrong build?"
+        # STACK-BALANCE dataflow: propagate push/pop depth along fall-through and branch
+        # edges; ret and the final external b end a path and must be at depth 0.
+        idx = {i.address: k for k, i in enumerate(ins)}
+        def delta(i):
+            if i.mnemonic=='stp' and '#-' in i.op_str and i.op_str.endswith('!'): return 1
+            if i.mnemonic=='ldp' and '], #' in i.op_str: return -1
+            return 0
+        depth = {ins[0].address: 0}
+        work = [ins[0].address]
+        cave_lo, cave_hi = base, base+len(w)*4
+        while work:
+            addr = work.pop()
+            i = ins[idx[addr]]
+            d_out = depth[addr] + delta(i)
+            succs = []
+            is_uncond_b = (i.mnemonic=='b')
+            is_branch = i.mnemonic in ('cbz','cbnz') or i.mnemonic.startswith('b.') or is_uncond_b
+            if i.mnemonic=='ret':
+                assert depth[addr]==0, (name,'ret with unbalanced stack',hex(addr),depth[addr])
+                continue
+            if is_branch:
+                tgt = int(i.op_str.split('#')[-1],16)
+                if cave_lo <= tgt < cave_hi:
+                    succs.append(tgt)
+                else:
+                    assert d_out==0, (name,'cave exit with unbalanced stack',hex(addr),d_out)
+            if not is_uncond_b and idx[addr]+1 < len(ins):
+                succs.append(ins[idx[addr]+1].address)
+            for t in succs:
+                if t in depth:
+                    assert depth[t]==d_out, (name,'depth conflict',hex(t),depth[t],d_out)
+                else:
+                    depth[t]=d_out; work.append(t)
+    assert disp(text,HOOK_P)==0xF9404008, "0x9D8A30 is not the expected ldr x8,[x0,#0x80]; wrong build?"
     assert disp(text,HOOK_R)==0xF81C0FF7, "0x9E41D0 is not the expected str x23,[sp,#-0x40]!; wrong build?"
     assert disp(text,HOOK_E)==0xB9006A68, "0x319EC4 is not the expected str w8,[x19,#0x68]; wrong build?"
-    bypass = b(HOOK_A2, 0x9D8A58)
+    # HOOK_M lives inside PWB's injected routine (only present once PWB's records are applied);
+    # its displaced word is PWB's own marker write str w9,[x20,#0x298].
+    assert b(HOOK_M, cM)  # (sanity; the displaced word is asserted by replaying it in cave_M)
 
     # hooks: each site branches to its cave (bytes are PC-relative, placed at mem+0x100)
     recs = [(HOOK_A, struct.pack('<I', b(HOOK_A, cA))),
             (HOOK_C, struct.pack('<I', b(HOOK_C, cC))),
             (HOOK_ST,struct.pack('<I', b(HOOK_ST, cS))),
-            (HOOK_A2,struct.pack('<I', bypass)),
+            (HOOK_P, struct.pack('<I', b(HOOK_P, cP))),
             (HOOK_R, struct.pack('<I', b(HOOK_R, cR))),
             (HOOK_E, struct.pack('<I', b(HOOK_E, cE))),
             (cA, b''.join(struct.pack('<I',x) for x in wA)),
             (cC, b''.join(struct.pack('<I',x) for x in wC)),
             (cS, b''.join(struct.pack('<I',x) for x in wS)),
             (cR, b''.join(struct.pack('<I',x) for x in wR)),
-            (cE, b''.join(struct.pack('<I',x) for x in wE))]
+            (cE, b''.join(struct.pack('<I',x) for x in wE)),
+            (cP, b''.join(struct.pack('<I',x) for x in wP)),
+            (cM, b''.join(struct.pack('<I',x) for x in wM)),
+            (HOOK_M, struct.pack('<I', b(HOOK_M, cM)))]   # redirect PWB's marker write -> cave_M
 
     def emit(records, path, header_comment):
         lines = [f"@nsobid-{NSOBID}", ""] + header_comment + ["@enabled"]
@@ -251,10 +312,14 @@ def main():
         merged = pwb_recs + recs
         # pairwise overlap check (in pchtxt space)
         rngs = [(m+PCHTXT_OFF, m+PCHTXT_OFF+len(d)) for m,d in merged]
+        INTENTIONAL = {HOOK_M+PCHTXT_OFF}  # HOOK_M redirect (pchtxt 0x305AB8) inside PWB's 0x305AB0/32B record
         for i in range(len(rngs)):
             for j in range(i+1, len(rngs)):
                 if rngs[i][0] < rngs[j][1] and rngs[j][0] < rngs[i][1]:
-                    raise SystemExit("OVERLAP between records %d and %d" % (i,j))
+                    a_lo = max(rngs[i][0], rngs[j][0])
+                    if a_lo in INTENTIONAL:
+                        continue
+                    raise SystemExit("OVERLAP (unified) records %d/%d" % (i,j))
         emit(merged, a.out_unified,
              ["// Wild Battles EXP (UNIFIED) - base Wild Battles + native wild-KO EXP in ONE mod.",
               "// Load this alone; do NOT also enable the separate 'Wild Battles' mod.",
@@ -267,9 +332,12 @@ def main():
         # vanilla post-KO catch screen stays, so players can still catch what they battle.
         catch_recs = [(HOOK_A, struct.pack('<I', b(HOOK_A, cA))),
                       (HOOK_C, struct.pack('<I', b(HOOK_C, cC))),
-                      (HOOK_A2,struct.pack('<I', bypass)),
+                      (HOOK_P, struct.pack('<I', b(HOOK_P, cP))),
                       (cA, b''.join(struct.pack('<I',x) for x in wA)),
-                      (cC, b''.join(struct.pack('<I',x) for x in wC))]
+                      (cC, b''.join(struct.pack('<I',x) for x in wC)),
+                      (cP, b''.join(struct.pack('<I',x) for x in wP)),
+                      (cM, b''.join(struct.pack('<I',x) for x in wM)),
+                      (HOOK_M, struct.pack('<I', b(HOOK_M, cM)))]
         pwb_recs2 = []
         for ln in Path(a.pwb).read_text().splitlines():
             ln = ln.strip()
@@ -278,10 +346,14 @@ def main():
                 pwb_recs2.append((int(addr,16)-PCHTXT_OFF, bytes.fromhex(hx.strip())))
         merged2 = pwb_recs2 + catch_recs
         rngs = [(m+PCHTXT_OFF, m+PCHTXT_OFF+len(d)) for m,d in merged2]
+        INTENTIONAL = {HOOK_M+PCHTXT_OFF}  # HOOK_M redirect (pchtxt 0x305AB8) inside PWB's 0x305AB0/32B record
         for i in range(len(rngs)):
             for j in range(i+1, len(rngs)):
                 if rngs[i][0] < rngs[j][1] and rngs[j][0] < rngs[i][1]:
-                    raise SystemExit("OVERLAP (catch variant) records %d/%d" % (i,j))
+                    a_lo = max(rngs[i][0], rngs[j][0])
+                    if a_lo in INTENTIONAL:
+                        continue
+                    raise SystemExit("OVERLAP (catch) records %d/%d" % (i,j))
         emit(merged2, a.out_catch_unified,
              ["// Wild Battles EXP - CATCH VARIANT (unified). Battle -> KO -> native EXP ->",
               "// the normal catch screen (you can still catch what you battled).",

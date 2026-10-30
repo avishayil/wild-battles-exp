@@ -5,7 +5,7 @@
 > respective owners. No game code or assets are distributed; a legally owned copy is
 > required. Read the full [legal notice & disclaimer](DISCLAIMER.md) before using this mod.
 
-**Alpha (`v0.3.0-alpha`).** A static IPSwitch (`.pchtxt`) mod for **Pokémon: Let's Go,
+**Alpha (`v0.4.0-alpha`).** A static IPSwitch (`.pchtxt`) mod for **Pokémon: Let's Go,
 Pikachu! v1.0.2** (Switch, title `010003F003A34000`) that makes **defeating** a wild
 Pokémon award normal battle **experience** — the way the main-series games do — on top of
 RicoSantos' *Wild Battles* (PWB1) mod.
@@ -22,10 +22,12 @@ code. There is no custom XP formula and no modified emulator.
 Verified working on **Eden** (macOS, Apple Silicon / MoltenVK). Program NSO build-id
 `C208DB6A4EF4361F28B8402BE0F7CD9A…`.
 
-> ⚠️ **Alpha / limited testing.** Confirmed: wild battle → faint → EXP → clean exit, across
-> consecutive encounters, no crashes. **Not yet validated:** evolution on a KO-induced
-> level-up, trainer battles, real legendary/Snorlax encounters, intentional catching, and
-> save/reload persistence. See **Status & known limitations** below. Keep a save backup.
+> ⚠️ **Alpha / limited testing.** Confirmed: wild KO → faint → EXP → clean exit across
+> consecutive encounters, KO-induced evolution, fully-vanilla trainer battles, and flee — all
+> with per-encounter PWB isolation (v0.4). **The open gate:** real legendary / scripted Snorlax
+> static encounters are not yet tested against (the development save is early-game); a dedicated
+> save/reload persistence pass is also pending. See **Status & known limitations** below. Keep a
+> save backup.
 
 ---
 
@@ -70,10 +72,12 @@ leaves behind:
 
 | Piece | Hook (NSO memory offset) | Effect |
 |---|---|---|
-| **A** faint | `0x28BF34` (state-4 handler) | Clears the legendary "instant-end" flag `[evt+0x574] & 0x80` once the command menu exists, so a KO **faints** |
+| **M** PWB marker | `0x3059B8` (in PWB's setup routine) | Replays PWB's own marker write and sets a `pwb_encounter` flag — true only during a PWB-synthesized wild battle; the per-encounter identity every other hook keys off |
+| **A** faint | `0x28BF34` (state-4 handler) | Clears the legendary "instant-end" flag `[evt+0x574] & 0x80` once the command menu exists **and `pwb_encounter` is set**, so a KO **faints** |
 | **C** model guard | `0xA9C650` (model-joint fn) | Returns "no joint" when the wild model lacks its resources — prevents the post-faint crash |
-| **A2** XP | `0x9D8A44` (in predicate `0x9D8A30`) | Bypasses the `+0x4A4` eligibility gate so the native EXP reward runs; the predicate's own flags check still excludes real legendaries |
-| **A3** exit | `0x28BD20` (battle-event entry) | At state 5, rewrites the result `1 → 3` ("fainted, no capture") so the battle ends **without** the catch screen (one-shot per encounter) |
+| **A2** XP | `0x9D8A30` (predicate entry) | Forces eligibility **only** for the PWB profile (`setup[+0x4A4]==1 && setup[+0x494]==0`); any other battle falls through to the untouched original predicate, so real legendaries keep their own gate |
+| **A3** exit | `0x28BD20` (battle-event entry) | At state 5, rewrites the result `1 → 3` ("fainted, no capture") so the battle ends **without** the catch screen — only on a verified KO (`pwb_encounter` + captured HP == 0), one-shot per encounter |
+| **A4** evolution | `0x319EC4` (after-battle next-state) | Redirects the would-be evolution-skipping transition so a KO-induced level-up evolves; also clears `pwb_encounter` each battle |
 
 Details, derivation, and the full debugging history are in [`docs/`](docs/) and
 [`research/`](research/).
@@ -101,11 +105,12 @@ Details, derivation, and the full debugging history are in [`docs/`](docs/) and
 - ❓ Save/reload persistence of gained levels/XP — spot-checked via the user's save/reload during testing; full pass pending.
 
 ## Roadmap / next TODOs
-- **v0.4.0-alpha — explicit encounter isolation (in progress):** gate the faint hook and
-  the XP-eligibility override on PWB's own per-encounter marker (`[battle_setup+0x298]==1`,
-  written only by PWB's synthesized-encounter setup), so no hook can touch a battle the mod
-  wasn't meant to change; audit all six hooks for non-PWB effects; differential byte
-  verification against v0.3.0-alpha.
+- **v0.4.0-alpha — explicit encounter isolation (done):** the faint hook (A) and the
+  XP-eligibility override (A2) are now gated on PWB's own per-encounter marker — a new hook
+  (M) on PWB's marker write sets a `pwb_encounter` flag, true only during a PWB-synthesized
+  battle. Verified live: consecutive wild KOs re-arm per encounter, trainer battles stay
+  fully vanilla (no hook fires), and flee leaves the result untouched. Differential byte
+  verification against v0.3.0-alpha confirms the carried-over caves are logic-identical.
 - **Validation backlog (P1):** multi-species HP-capture checks, dedicated save → quit →
   relaunch persistence pass, PP-consumption recheck under both variants, document the Catch
   Variant's evolution limitation (it lacks the A3/A4 chain).
@@ -118,12 +123,18 @@ Details, derivation, and the full debugging history are in [`docs/`](docs/) and
 
 ## Repo layout
 ```
-mods/                 the installable mod(s) — unified + add-on
+mods/                 the installable mod(s) — unified + catch variant + add-on
 tools/                build_patch.py (regenerates the patch) + analysis/verify scripts
 docs/                 ENGINEERING_LOG, REPRODUCE, FUNCTION_MAP
 research/             raw experiment log, investigation notes, original findings
-CHANGELOG.md, CREDITS.md
+CONTRIBUTING.md       dev environment, tools, external references, build/test loop
+AGENTS.md, CLAUDE.md  operating rules for AI coding agents
+CHANGELOG.md, CREDITS.md, DISCLAIMER.md, LICENSE.md
 ```
+
+## Contributing
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the development environment, tooling, and the
+build → verify → test loop; AI coding agents should also read [`AGENTS.md`](AGENTS.md).
 
 ## Install from a release zip (Eden)
 Grab the zip for ONE variant from GitHub Releases, then in Eden: right-click the game →
@@ -136,6 +147,9 @@ Nintendo, Game Freak, Creatures Inc., or The Pokémon Company**. All game tradem
 copyrights belong to their respective owners. This repository contains **no game code,
 assets, or keys** — only original tooling and address-based patch descriptions. A legally
 owned copy of the game is required. Full notice: [`DISCLAIMER.md`](DISCLAIMER.md).
+
+The original tooling, docs, and patch descriptions here are MIT-licensed
+([`LICENSE.md`](LICENSE.md)); the license grants no rights in any game IP.
 
 ## Credits
 Base **Wild Battles (PWB1)** mod by **RicoSantos**. Native-EXP mechanism and address map

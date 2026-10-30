@@ -46,3 +46,27 @@ Release-hardening: **A3 now requires a verified KO.**
   Metapod. Trainer battles unaffected (flag can never be set outside a PWB verified KO).
 - Also verified this session: trainer-battle isolation (hooks never fire; fully vanilla), and
   PP/HP persistence between battles under the main build.
+
+## v0.4.0-alpha — 2026-10-30
+**Explicit per-encounter PWB isolation.** The faint hook and the XP-eligibility override are
+now gated on PWB's *own* encounter marker, so no hook can touch a battle the mod wasn't meant
+to change — even one that happens to reach the same states.
+- New hook **M** at PWB's marker write `str w9,[x20,#0x298]` (mem `0x3059B8`, inside PWB's
+  injected setup routine): the cave replays that exact instruction and sets a `pwb_encounter`
+  flag (scratch `+0xF8`). Because PWB writes this marker once per synthesized encounter, the
+  flag is true only during a PWB wild battle.
+- Hook **A** (faint) now clears the instant-end flag only when `pwb_encounter` is set (plus the
+  existing command-menu + flag-0x80 guards). Hook **E** (after-battle) clears `pwb_encounter`
+  each battle, so it re-arms per encounter.
+- Hook **A2** reworked into a conditional predicate wrapper at the predicate entry
+  (mem `0x9D8A30`, replacing the blunt one-word bypass at `0x9D8A44`): it forces XP eligibility
+  only for the PWB profile (`setup[+0x4A4]==1 && setup[+0x494]==0`) and otherwise falls through
+  to the **untouched** original predicate — a real legendary/static encounter runs its own gate.
+- build_patch.py: single intentional overlap (hook M's branch sits inside PWB's 32-byte
+  `0x305AB0` record) is whitelisted; capstone + stack-balance + overlap checks all pass. A
+  relocation-normalized diff confirms the ST/C/R caves are byte-identical to v0.3 (logic
+  unchanged, just moved).
+- Verified live (gdbstub scratch trace): two consecutive wild KOs (`pwb_encounter` re-set and
+  the one-shot re-armed each time), one trainer battle (fully vanilla — `pwb_encounter` never
+  set, no hook activity, no rewrite), a third wild KO, and a flee (hook A armed but the result
+  rewrite correctly did **not** fire; native flee path ran).
