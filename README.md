@@ -1,5 +1,10 @@
 # Wild Battles EXP — native experience for wild KOs in Pokémon: Let's Go, Pikachu!
 
+> ⚖️ **Unofficial fan project — not affiliated with or endorsed by Nintendo, Game Freak,
+> Creatures Inc., or The Pokémon Company.** All game trademarks/copyrights belong to their
+> respective owners. No game code or assets are distributed; a legally owned copy is
+> required. Read the full [legal notice & disclaimer](DISCLAIMER.md) before using this mod.
+
 **Alpha (`v0.3.0-alpha`).** A static IPSwitch (`.pchtxt`) mod for **Pokémon: Let's Go,
 Pikachu! v1.0.2** (Switch, title `010003F003A34000`) that makes **defeating** a wild
 Pokémon award normal battle **experience** — the way the main-series games do — on top of
@@ -94,6 +99,22 @@ Details, derivation, and the full debugging history are in [`docs/`](docs/) and
   the main unified mod (enable exactly one). The main build auto-exits after a KO, so a
   defeated Pokémon is gone.
 - ❓ Save/reload persistence of gained levels/XP — spot-checked via the user's save/reload during testing; full pass pending.
+
+## Roadmap / next TODOs
+- **v0.4.0-alpha — explicit encounter isolation (in progress):** gate the faint hook and
+  the XP-eligibility override on PWB's own per-encounter marker (`[battle_setup+0x298]==1`,
+  written only by PWB's synthesized-encounter setup), so no hook can touch a battle the mod
+  wasn't meant to change; audit all six hooks for non-PWB effects; differential byte
+  verification against v0.3.0-alpha.
+- **Validation backlog (P1):** multi-species HP-capture checks, dedicated save → quit →
+  relaunch persistence pass, PP-consumption recheck under both variants, document the Catch
+  Variant's evolution limitation (it lacks the A3/A4 chain).
+- **v0.5.0-beta — release gates:** scripted Snorlax (Route 12/16) and a real legendary must
+  behave fully vanilla (battle + capture opportunity intact) with hook counters at zero;
+  ordinary wild/trainer/flee regressions re-passed; save integrity confirmed. **Public beta
+  is held until these pass.**
+- **Future (post-beta):** an in-battle CATCH action (FireRed-style), merging the two
+  variants; shiny/scripted wild-encounter edge cases.
 
 ## Repo layout
 ```
