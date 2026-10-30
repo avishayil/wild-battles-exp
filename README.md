@@ -5,7 +5,7 @@
 > respective owners. No game code or assets are distributed; a legally owned copy is
 > required. Read the full [legal notice & disclaimer](DISCLAIMER.md) before using this mod.
 
-**Alpha (`v0.4.0-alpha`).** A static IPSwitch (`.pchtxt`) mod for **Pokémon: Let's Go,
+**Alpha (`v0.4.1-alpha`).** A static IPSwitch (`.pchtxt`) mod for **Pokémon: Let's Go,
 Pikachu! v1.0.2** (Switch, title `010003F003A34000`) that makes **defeating** a wild
 Pokémon award normal battle **experience** — the way the main-series games do — on top of
 RicoSantos' *Wild Battles* (PWB1) mod.
@@ -105,12 +105,14 @@ Details, derivation, and the full debugging history are in [`docs/`](docs/) and
 - ❓ Save/reload persistence of gained levels/XP — spot-checked via the user's save/reload during testing; full pass pending.
 
 ## Roadmap / next TODOs
-- **v0.4.0-alpha — explicit encounter isolation (done):** the faint hook (A) and the
-  XP-eligibility override (A2) are now gated on PWB's own per-encounter marker — a new hook
-  (M) on PWB's marker write sets a `pwb_encounter` flag, true only during a PWB-synthesized
-  battle. Verified live: consecutive wild KOs re-arm per encounter, trainer battles stay
-  fully vanilla (no hook fires), and flee leaves the result untouched. Differential byte
-  verification against v0.3.0-alpha confirms the carried-over caves are logic-identical.
+- **v0.4.0 / v0.4.1-alpha — explicit encounter isolation (done):** a new hook (M) on PWB's own
+  marker write sets a `pwb_encounter` flag, true only during a PWB-synthesized battle. In
+  v0.4.1 **every** behavior-changing hook is scoped to it — the faint hook (A), the
+  XP-eligibility override (A2) and the model-joint guard (C) all require the marker, and the
+  Catch Variant now clears it after each battle (no leak). Verified live: consecutive wild KOs
+  re-arm per encounter, trainer battles stay fully vanilla, flee leaves the result untouched,
+  and the marker clears on KO / capture / flee. Differential byte verification confirms the
+  carried-over caves are logic-identical across versions.
 - **Validation backlog (P1):** multi-species HP-capture checks, dedicated save → quit →
   relaunch persistence pass, PP-consumption recheck under both variants, document the Catch
   Variant's evolution limitation (it lacks the A3/A4 chain).

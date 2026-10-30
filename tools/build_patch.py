@@ -119,14 +119,22 @@ def cave_A(text, base):   # PoC A v3: clear instant-end flag ONLY for a PWB enco
          disp(text,HOOK_A)]
     return w + [ret_branch(w, base, HOOK_A+4)]
 
-def cave_C(text, base):   # PoC C: model-joint guard (recomp port); return x0=0 if resources missing
+def cave_C(text, base):   # PoC C v2: model-joint guard (recomp port), gated on pwb_encounter.
+    # Returns x0=0 ("no joint") for a resource-less model, but ONLY inside an active PWB
+    # encounter (scratch +0xF8). Outside a PWB battle it runs the untouched original, so a
+    # vanilla model is never altered (v0.4.1). The guard still only triggers for the exact
+    # resource-missing condition recomp documented; the +0xF8 check just scopes it to PWB.
     A = lambda i: base+i*4
-    Lintc, Lorig = A(14), A(23)
-    return [STP_1617,ADRP_SCRATCH,ADD_F00, ldr_w(17,16,0xB0),addi_w(17,17,1),str_w(17,16,0xB0),LDP_1617,
-            cbz_x(0,A(7),Lorig), ldr_x(9,0,0x1e0), cbnz_x(9,A(9),Lorig),
-            ldrb_w(9,0,0x192), cbz_w(9,A(11),Lintc), ldr_x(9,0,0x1e8), cbnz_x(9,A(13),Lorig),
-            STP_1617,ADRP_SCRATCH,ADD_F00, ldr_w(17,16,0xD8),addi_w(17,17,1),str_w(17,16,0xD8),LDP_1617,
-            movz_x(0,0), RET, disp(text,HOOK_C), b(A(24),HOOK_C+4)]
+    Lintc, Lorig, Lrest = A(16), A(26), A(25)
+    return [STP_1617,ADRP_SCRATCH,ADD_F00,
+            ldrb_w(17,16,0xF8), cbz_w(17,A(4),Lrest),               # 3,4  pwb_encounter? else restore+orig
+            ldr_w(17,16,0xB0),addi_w(17,17,1),str_w(17,16,0xB0),    # 5-7  entry count (PWB only)
+            LDP_1617,
+            cbz_x(0,A(9),Lorig), ldr_x(9,0,0x1e0), cbnz_x(9,A(11),Lorig),      # 9-11 model/[+0x1e0]
+            ldrb_w(9,0,0x192), cbz_w(9,A(13),Lintc), ldr_x(9,0,0x1e8), cbnz_x(9,A(15),Lorig),  # 12-15
+            STP_1617,ADRP_SCRATCH,ADD_F00, ldr_w(17,16,0xD8),addi_w(17,17,1),str_w(17,16,0xD8),LDP_1617,  # 16-22
+            movz_x(0,0), RET,                                       # 23,24 no-joint
+            LDP_1617, disp(text,HOOK_C), b(A(27),HOOK_C+4)]         # 25=Lrest restore, 26=Lorig, 27 return
 
 def cave_ST(text, base):  # entry hook: reset flags@state0; result 1->3 @state5 on VERIFIED KO (one-shot)
     A = lambda i: base+i*4
@@ -159,19 +167,22 @@ def cave_M(text, base):  # PWB marker hook: replay str w9,[x20,#0x298] + set pwb
          LDP_1617, disp(text,HOOK_M)]           # disp = str w9,[x20,#0x298]
     return w + [ret_branch(w, base, HOOK_M+4)]
 
-def cave_P(text, base):  # A2 v2: conditional XP eligibility — PWB profile only, else ORIGINAL predicate
-    # x0 = battle controller; setup = [x0+0x80]. If setup matches the PWB profile
-    # ([+0x4A4]==1 && [+0x494]==0) return w0=1 (eligible); otherwise fall through to the
-    # untouched original predicate (including its +0x4A4 gate).
+def cave_P(text, base):  # A2 v3: conditional XP eligibility — PWB ENCOUNTER + PWB profile only
+    # x0 = battle controller; setup = [x0+0x80]. Force eligibility (w0=1) ONLY when this is an
+    # active PWB encounter (scratch +0xF8 set by HOOK_M) AND setup matches the PWB profile
+    # ([+0x4A4]==1 && [+0x494]==0); otherwise fall through to the untouched original predicate
+    # (including its own +0x4A4 gate). The +0xF8 gate (v0.4.1) stops a non-PWB battle that
+    # happens to share the profile from receiving modified XP eligibility.
     A = lambda i: base+i*4
-    Lorig = A(16)
+    Lorig = A(20)
     w = [STP_1617,
-         ldr_x(16,0,0x80), cbz_x(16,A(2),Lorig),
-         ldrb_w(17,16,0x4A4), cmp_i(17,1), bcond(NE,A(5),Lorig),
-         ldr_w(17,16,0x494), cbnz_w(17,A(7),Lorig),
-         ADRP_SCRATCH, ADD_F00, ldr_w(17,16,0xE4), addi_w(17,17,1), str_w(17,16,0xE4),  # a2_pwb_cnt
-         LDP_1617, movz_w(0,1), RET,                                 # eligible: w0=1
-         LDP_1617, disp(text,HOOK_P)]                                # A(16)=Lorig: restore + original
+         ADRP_SCRATCH, ADD_F00, ldrb_w(17,16,0xF8), cbz_w(17,A(4),Lorig),  # 1-4  pwb_encounter?
+         ldr_x(16,0,0x80), cbz_x(16,A(6),Lorig),                           # 5,6  setup = [x0+0x80]
+         ldrb_w(17,16,0x4A4), cmp_i(17,1), bcond(NE,A(9),Lorig),           # 7-9  +0x4A4 == 1
+         ldr_w(17,16,0x494), cbnz_w(17,A(11),Lorig),                       # 10,11 +0x494 == 0
+         ADRP_SCRATCH, ADD_F00, ldr_w(17,16,0xE4), addi_w(17,17,1), str_w(17,16,0xE4),  # 12-16 a2_pwb_cnt
+         LDP_1617, movz_w(0,1), RET,                                       # 17-19 eligible: w0=1
+         LDP_1617, disp(text,HOOK_P)]                                      # 20=Lorig: restore + original
     return w + [ret_branch(w, base, HOOK_P+4)]
 
 def cave_R(text, base):  # reflect capture: wild (slot>=6) HP -> scratch +0xC8, have=1 @+0xFE
@@ -330,12 +341,18 @@ def main():
         assert a.pwb, "--pwb required for --out-catch-unified"
         # Catch variant: faint + crash-guard + native XP, but NO result rewrite -> the
         # vanilla post-KO catch screen stays, so players can still catch what they battle.
+        # NOTE (v0.4.1): the catch variant includes hook E purely to CLEAR pwb_encounter (+0xF8)
+        # after each battle — without it the marker, set by hook M, would persist into the next
+        # (possibly non-PWB) battle. cave_E's A4 state-redirect stays inert here: evolve_pending
+        # (+0xFF) is only ever set by cave_ST's verified-KO rewrite, which this variant omits.
         catch_recs = [(HOOK_A, struct.pack('<I', b(HOOK_A, cA))),
                       (HOOK_C, struct.pack('<I', b(HOOK_C, cC))),
                       (HOOK_P, struct.pack('<I', b(HOOK_P, cP))),
+                      (HOOK_E, struct.pack('<I', b(HOOK_E, cE))),
                       (cA, b''.join(struct.pack('<I',x) for x in wA)),
                       (cC, b''.join(struct.pack('<I',x) for x in wC)),
                       (cP, b''.join(struct.pack('<I',x) for x in wP)),
+                      (cE, b''.join(struct.pack('<I',x) for x in wE)),
                       (cM, b''.join(struct.pack('<I',x) for x in wM)),
                       (HOOK_M, struct.pack('<I', b(HOOK_M, cM)))]
         pwb_recs2 = []

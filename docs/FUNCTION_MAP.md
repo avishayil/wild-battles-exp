@@ -65,7 +65,7 @@ Guard **returns no-joint** (x0=0) when `model!=0 && [+0x1e0]==0 && !([+0x192]!=0
 ## Scratch layout (this mod's instrumentation; inert for gameplay)
 `+0x34` clear-count · `+0x40` last state · `+0x44` states-seen mask · `+0x48` `[evt+0x720]` ·
 `+0x50` `[+0x68]` · `+0x58` result · `+0x5c` entry-count · `+0xB0` model-joint entry-count ·
-`+0xD8` guard-hit count · `+0xE0` result-rewrite count · `+0xE4` A2 PWB-match count · `+0xC8` captured wild HP · `+0xF8` **pwb_encounter** (v0.4: set by hook M, cleared by hook E — the per-encounter PWB identity hooks A/A2 gate on) · `+0xFC` armed · `+0xFD` done · `+0xFE` have (wild HP captured) · `+0xFF` evolve_pending (A4). The state-0 reset zeroes `+0xFC..+0xFF` with one u32 store; `+0xF8` is a separate u32 slot.
+`+0xD8` guard-hit count · `+0xE0` result-rewrite count · `+0xE4` A2 PWB-match count · `+0xC8` captured wild HP · `+0xF8` **pwb_encounter** (v0.4: set by hook M, cleared by hook E — the per-encounter PWB identity; hooks **A, A2 and C** all gate on it as of v0.4.1) · `+0xFC` armed · `+0xFD` done · `+0xFE` have (wild HP captured) · `+0xFF` evolve_pending (A4). The state-0 reset zeroes `+0xFC..+0xFF` with one u32 store; `+0xF8` is a separate u32 slot.
 
 ## Base PWB1 (RicoSantos) — for reference
 Injected routine at mem `0x305970` (pchtxt `0x305A70`, `FD7BBBA9…`), entered via a `bl`
@@ -75,3 +75,11 @@ system and sets config values; it also NOPs mem `0x2FDF34`/`0x2FDF80` (pchtxt
 `str w9,[x20,#0x298]` at mem `0x3059B8` **once per synthesized encounter** — hook M (v0.4)
 replays that store and sets `pwb_encounter`, giving every other hook a reliable
 PWB-only, per-encounter identity.
+
+PWB forces wild encounters into the special-battle type (`mov w8,#9` at `0x28BE84`) and reaches
+the marker-writing setup (`0x305970`) via a retargeted `bl` at `0x305934` inside a
+**virtually-dispatched** function (`0x305784`, no direct callers) — so a pure static call graph
+can't prove the marker is exclusive to ordinary-wild encounters. PWB keys its own
+kind-9-vs-10 choice and state patch on the **native** field `[evt+0x735]` (it only reads,
+never writes it), which is the candidate discriminator to confirm on a real static encounter.
+See `WBEXP_STATIC_CALLGRAPH.md` (repo-external).
