@@ -43,7 +43,11 @@ Use `tools/disasm.py text.bin <start> <end>`:
   command-menu object). Instant-end flag `[evt+0x574] & 0x80`.
 - **EXP predicate `0x9D8A30`**: `ldr x8,[x0,#0x80]; ldr w9,[x8]; cmp w9,#1; b.hi …;
   ldrb w9,[x8,#0x4a4]; cbz w9,#0x9d8a58; …` then flags `[x8+0x494]` bits `0x80`/`0x800`.
-  The `cbz w9,#0x9d8a58` at **`0x9D8A44`** is the `+0x4A4` gate we bypass.
+  `[setup+0x4A4]==1` is the only thing that denies a PWB battle. A2 hooks the **predicate
+  entry** and forces eligibility only for the PWB profile (`+0x4A4==1 && +0x494==0`) *and*
+  while `pwb_encounter` is set (v0.4.1); every other battle runs the original predicate —
+  including its `cbz` gate at `0x9D8A44` — untouched. (v0.1–v0.3 patched that `cbz` in place;
+  no longer.)
 - **Model-joint fn `0xA9C650`** (recomp Eevee `0xA9C700`): entry `sub sp,sp,#0x70; … mov
   x21,x0; ldrb w8,[x21,#0x192]; cbz …; ldr x8,[x21,#0x1e8]; cbz …`. Find it by searching
   for the rare `ldrb w,[*,#0x192]` combined with `ldr x,[*,#0x1e8]`/`[*,#0x1e0]`.
@@ -57,13 +61,16 @@ Use `tools/disasm.py text.bin <start> <end>`:
 python3 -I tools/build_patch.py \
   --text text.bin \
   --pwb  pwb1.pchtxt \
-  --out-addon   wbexp_addon.pchtxt \
-  --out-unified wild_battles_exp.pchtxt
+  --out-addon         wbexp_addon.pchtxt \
+  --out-unified       wild_battles_exp.pchtxt \
+  --out-catch-unified wild_battles_exp_catch.pchtxt
 ```
-`build_patch.py` encodes the 4 hooks + 3 caves in memory space, emits records at
-`mem + 0x100`, self-verifies with capstone (return branches, displaced originals, the A2
-bypass word), merges the base PWB records for the unified build, and runs a pairwise
-overlap check. It reproduces the shipped files byte-for-byte.
+`build_patch.py` encodes the hooks + caves (A faint, C model-guard, ST/A3 result rewrite,
+R HP-capture, E/A4 evolution, P/A2 XP, M identity marker) in memory space, emits records at
+`mem + 0x100`, self-verifies with capstone (return branches, displaced originals) plus a
+dataflow **stack-balance** check, merges the base PWB records for the unified builds, and runs
+a pairwise **overlap** check (one intentional overlap: M's branch inside PWB's `0x305AB0`
+record). It reproduces the shipped files byte-for-byte. The catch variant omits A3/A4/R.
 
 ## 5. Deploy and VERIFY IN MEMORY (don't skip)
 Install the mod, enable it, boot the game, then with the gdbstub confirm the bytes landed:

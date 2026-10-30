@@ -45,9 +45,10 @@ to PWB's own encounters. Hooks (all in the code cave, see `docs/FUNCTION_MAP.md`
 - **M** `0x3059B8` — replays PWB's per-encounter marker write and sets `pwb_encounter` (scratch
   `+0xF8`): the PWB-only, per-encounter identity everything else keys off.
 - **A** `0x28BF34` — clears the instant-end flag (so a KO faints) **only when `pwb_encounter`**.
-- **A2** `0x9D8A30` — predicate wrapper: force XP eligibility only for the PWB profile, else run
-  the untouched original predicate.
-- **C** `0xA9C650` — model-joint guard: prevents the post-faint crash for resource-less models.
+- **A2** `0x9D8A30` — predicate wrapper: force XP eligibility only when `pwb_encounter` **and**
+  the PWB profile hold; else run the untouched original predicate.
+- **C** `0xA9C650` — model-joint guard: prevents the post-faint crash for resource-less models;
+  **gated on `pwb_encounter`** (outside a PWB battle it runs the untouched original).
 - **A3** `0x28BD20` — at state 5 rewrite result `1→3` on a **verified KO** (captured HP == 0),
   one-shot, so the catch screen is skipped and the battle exits.
 - **A4** `0x319EC4` — redirect the after-battle transition so a KO level-up evolves; clears

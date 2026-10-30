@@ -1,7 +1,7 @@
 # Engineering log — Wild Battles EXP (Pikachu 1.0.2)
 
 This is the reasoning trail: the goal, the reference implementation, the one bug that cost
-days, how each of the four mechanisms was found and verified, and what remains. It is
+days, how each mechanism was found and verified, and what remains. It is
 written so another engineer (or AI agent) can understand *why* the patch is what it is.
 
 ## 1. Goal
@@ -64,7 +64,11 @@ Two other environment traps found along the way:
 - The Eden **GUI keeps config and enabled-mods in memory**; editing `qt-config.ini` while
   it's open does nothing. Toggle gdbstub / mods in the GUI, or fully quit first.
 
-## 4. The battle lifecycle and the four mechanisms
+## 4. The battle lifecycle and the hooks
+
+> The v0.1–v0.3 core is A/C/A2/A3 (faint, crash-guard, EXP, exit). v0.4 added **R** (verified-KO
+> HP capture) and **A4** (evolution), and v0.4.1 added **M** — a per-encounter PWB **identity**
+> that every behavior-changing hook (A, A2, C) now gates on. See §6.
 
 ### Battle-event state machine
 `0x28BD20` is the per-frame battle-event update: `x0 → x19` = event object `evt`; it reads
@@ -88,17 +92,23 @@ crashes. `0xA9C650` is the Pikachu equivalent of recomp's `0xA9C700`: entry
 `[model+0x1e0]`. Instrumentation confirmed it is called during the faint with a
 resource-less model (`+0x192=0, +0x1e8=0, +0x1e0=0`). The guard replicates recomp's
 condition: **run the original** if `model==0 || [+0x1e0]!=0 || ([+0x192]!=0 && [+0x1e8]!=0)`;
-otherwise return `x0=0` ("no joint") immediately. Verified: post-faint crash gone.
+otherwise return `x0=0` ("no joint") immediately. Verified: post-faint crash gone. From
+**v0.4.1** this guard is also gated on `pwb_encounter` — outside a PWB battle it always runs
+the original, so a resource-less vanilla model is never force-returned "no joint".
 
-### A2 — award EXP (`0x9D8A44`, in predicate `0x9D8A30`)
+### A2 — award EXP (`0x9D8A30`, predicate entry)
 `0x9D8A30` is the EXP-eligibility predicate: `x8=[x0+0x80]` (battle setup); returns 1 only
 if `kind<=1 && [setup+0x4A4]==0 && flags[+0x494] bit7 clear && bit0x800 clear`.
 Instrumentation showed it returns **0 solely because `[setup+0x4A4]==1`** (`kind=0`,
-`flags=0` both pass). Normal XP-eligible battles have `+0x4A4==0`; PWB has `==1`. The fix
-changes the `+0x4A4` gate `cbz w9,#0x9d8a58` at `0x9D8A44` into an unconditional
-`b #0x9d8a58`, so the predicate's **existing flags check** decides eligibility — which
-still denies static encounters (real legendaries: flag `0x80`) while PWB wild battles
-(flags `0`) become eligible. Verified in-game: "Pikachu got 12 Exp. Points!" + party
+`flags=0` both pass). Normal XP-eligible battles have `+0x4A4==0`; PWB has `==1`.
+
+v0.1–v0.3 bypassed the `+0x4A4` gate in place (one word at `0x9D8A44`), which was global.
+From **v0.4** A2 is a wrapper hooked at the **predicate entry** instead: it forces `w0=1`
+only for the PWB **profile** (`setup[+0x4A4]==1 && setup[+0x494]==0`) and otherwise falls
+through to the **untouched original** predicate (which keeps its own `+0x4A4` gate, so a real
+static encounter is still denied). From **v0.4.1** it additionally requires the PWB
+encounter marker (`pwb_encounter`, see M) — so a non-PWB battle that merely shares the profile
+can't get modified eligibility. Verified in-game: "Pikachu got 12 Exp. Points!" + party
 distribution. The downstream amount function (`0x9D3BA0`, which has its own `+0x4A4`
 null-guard that we do **not** touch) computed a real amount.
 
@@ -107,33 +117,69 @@ With the crash gone, the lifecycle now reaches **state 5**. The result chain
 `[evt+0x720] → [+0x68] → [+0x508]` holds `1` (normal/faint); recomp rewrites it to `3`
 ("fainted, no capture"). We hook the battle-event entry and, at `state==5` when the
 encounter is **armed** (A set the flag), `result==1`, and not already done, write
-`[+0x508]=3` once. The one-shot flags (`+0xFC` armed, `+0xFD` done) are **reset when
-`state==0`**, so each new encounter re-arms. Verified: KO → faint → EXP → straight back to
-overworld, no catch screen; `result` observed flipping `1→3` once; second encounter
-re-armed cleanly.
+`[+0x508]=3` once. From **v0.4** this is gated on a **verified KO** — `have && wild_HP==0`
+(see R) — not just the "armed" proxy, so a non-KO ending (e.g. flee) that reaches state 5 is
+left alone. The one-shot flags (`+0xFC` armed, `+0xFD` done) are **reset when `state==0`**, so
+each new encounter re-arms. Verified: KO → faint → EXP → straight back to overworld, no catch
+screen; `result` observed flipping `1→3` once; flee leaves `result` untouched; second
+encounter re-armed cleanly.
+
+### R — capture the wild HP (`0x9E41D0`, BTL_POKEPARAM reflect)
+To make A3's "verified KO" real, hook the battle-Pokémon "reflect" function (fires at battle
+end, KO **and** flee). For the wild slot (`[b+0x87] >= 6`; observed `12`) it records current
+HP `[b+0x7e]` into scratch `+0xC8` and sets `have` (`+0xFE`). A KO reads `0`; a flee reads a
+live value — which is exactly what lets A3 reject non-KO endings.
+
+### A4 — evolve on a KO level-up (`0x319EC4`, after-battle)
+The after-battle processor (`0x319A60`) picks its next state from the result: `3` (which A3
+writes) routed to the evolution-**skipping** state 4. Hook the next-state write
+`str w8,[x19,#0x68]` at `0x319EC4`: when `evolve_pending` (`+0xFF`, set only by A3's
+verified-KO rewrite) and the next state would be 4, write 1 instead (the native
+evolution-check state); one-shot. Verified: L6 Caterpie → L7 on wild-KO EXP → native evolution
+cutscene → Metapod. This hook also **clears `pwb_encounter`** each battle (see M).
+
+### M — per-encounter PWB identity (`0x3059B8`, v0.4.1 scoping)
+A/A2/C change behavior that a *real* legendary/Snorlax (the same special-battle system PWB
+reuses) would also hit. To scope them, hook **PWB's own marker write** `str w9,[x20,#0x298]`
+inside its injected setup routine (`0x305970`): the cave replays that store and sets
+`pwb_encounter` (scratch `+0xF8`). Because PWB writes it once per synthesized encounter, the
+flag is true only during a PWB wild battle; A4 clears it after each battle (re-arms per
+encounter). A, A2 and C all require it. Caveat: PWB's setup is reached by virtual dispatch, so
+static analysis can't prove the marker never fires for a genuine static encounter — PWB's
+native discriminator `[evt+0x735]` is the lead to confirm on a live Snorlax (see
+`WBEXP_STATIC_CALLGRAPH.md`, repo-external).
 
 ## 5. Code cave & scratch
 - **Cave:** the loader page-aligns the `.text` segment size up
   (`PageAlignSize(0xD32BA8)=0xD33000`), so mem `0xD32BA8..0xD33000` (0x458 bytes) is
-  zero-filled, RX-mapped, and unused — our three cave bodies live here (end `0xD32D10`).
+  zero-filled, RX-mapped, and unused — our cave bodies live here (v0.4.1: caves
+  A/C/ST/R/E/P/M laid out consecutively, `0xD32BA8..0xD32E08`, 608 B).
 - **Scratch:** mem `0x1EE0F00..0x1EE1000` is the tail of `.bss` (module mapped out to
   `0x1EE1000`), used as an instrumentation/flag "blackboard". `adrp x16,#0x1EE0000` from
   the cave page encodes as `0xD0008D70`. (An earlier bug used mid-`.bss` `0x1956830`, which
   overlapped live globals — use the tail.)
 
-## 6. What remains (hardening)
-- **A4 evolution:** test a KO that causes a level-up into an evolution (e.g. Caterpie L6→7).
-  If it doesn't evolve, port recomp's `after_battle_hook`: for a confirmed PWB KO, redirect
-  the after-battle state `4→1` (one-shot, same lifecycle protection as A3).
-- **Enemy-HP check for A3:** the reviewer wants `enemy_hp==0` as an explicit guard (recomp
-  records enemy HP). We currently use "armed && result==1" as a proxy; locate the defeated
-  Pokémon's HP and add the check before release.
-- **Encounter isolation / discriminator:** A2's bypass is global-but-flags-gated; A3 is
-  armed-gated. Validate against a real legendary, a trainer battle, fleeing, and
-  intentional catching before calling the patch release-safe.
-- **Catch-during-battle:** base PWB can't throw a ball mid-battle, so with A3 a battled
-  Pokémon can't be kept. A future "Catch variant" (A2 only, keep the catch screen) or a
-  battle CATCH action (recomp has related work) would address this.
+## 6. Done since (v0.4 / v0.4.1) and what remains
+
+**Done and live-verified:**
+- **R — enemy-HP capture** and **A3's verified-KO gate** (`have && wild_HP==0`): flee no longer
+  triggers the result rewrite.
+- **A4 — evolution** on a KO level-up (Caterpie L6→7 → Metapod).
+- **M — per-encounter PWB identity** and **v0.4.1 scoping**: A, A2 and C all require
+  `pwb_encounter`; A2 is a profile+marker-gated predicate wrapper (not the old global bypass);
+  the Catch Variant clears the marker after each battle (no leak). Verified across KO / capture
+  / flee / trainer.
+- **Catch Variant** (A+C+A2+M+E, no A3/A4): keeps the post-KO catch screen.
+
+**Still open (release gates / validation):**
+- **Real static encounter:** a scripted **Snorlax** / **legendary** must stay fully vanilla
+  (capture intact). PWB reuses that exact battle system, and the marker's exclusivity can't be
+  proven offline (virtual dispatch) — measure `pwb_encounter` and `[evt+0x735]` on a live one.
+  This is the gate holding public beta. See `WBEXP_STATIC_CALLGRAPH.md` (repo-external).
+- **Multi-species HP** capture (widen past the observed slot `12`), a dedicated **save/reload**
+  persistence pass, and a **PP** control test (base PWB vs EXP vs Catch Variant).
+- **Catch-during-battle:** base PWB can't throw a ball mid-battle; a battle CATCH action
+  (recomp has related work) would merge the two variants. Post-beta.
 
 ## 7. Tooling
 - `tools/build_patch.py` — regenerates the add-on and the unified pchtxt from `text.bin` +

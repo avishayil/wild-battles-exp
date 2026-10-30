@@ -71,7 +71,7 @@ to change — even one that happens to reach the same states.
   set, no hook activity, no rewrite), a third wild KO, and a flee (hook A armed but the result
   rewrite correctly did **not** fire; native flee path ran).
 
-## v0.4.1-alpha — encounter-isolation hardening (in progress)
+## v0.4.1-alpha — encounter-isolation hardening
 Source-review follow-ups so **every** hook that changes native behavior is scoped to a PWB
 encounter, not just hook A/A3.
 - **A2 (cave_P) now requires `pwb_encounter`** in addition to the PWB profile
@@ -88,5 +88,10 @@ encounter, not just hook A/A3.
   exclusivity can't be proven offline; a native discriminator `[evt+0x735]` identified as the
   thing to measure in the live Snorlax/legendary test.
 - Differential vs v0.4.0: unified changes limited to cave_C + cave_P (`+0xF8` gate); catch adds
-  cave_E. All other caves byte-identical. **Live regression evidence pending** (new gates,
-  marker cleanup on all termination paths, multi-species HP).
+  cave_E. All other caves byte-identical.
+- Verified live (gdbstub scratch trace): **unified** — two wild KOs, a flee and a trainer
+  battle, with A2/C still firing in PWB battles, the marker clearing on KO and flee, and the
+  trainer battle fully vanilla with no leaked marker; **catch variant** — a KO+capture and a
+  flee, marker cleared on both the capture and flee paths with no leak into the next battle.
+- Still open (unchanged): a live scripted-Snorlax/legendary isolation test (the beta gate),
+  multi-species HP validation, a save/reload persistence pass, and a PP control test.
