@@ -79,18 +79,19 @@ Details, derivation, and the full debugging history are in [`docs/`](docs/) and
 - ✅ Wild battle → faint → native EXP (measured, e.g. "Pikachu got 12 Exp. Points!") →
   party distribution → clean return to overworld.
 - ✅ Consecutive encounters (per-encounter one-shot re-arms correctly). No crashes.
-- ❓ **Evolution** after a KO-induced level-up — untested (may need the after-battle
-  `state 4→1` redirect; see `docs/ENGINEERING_LOG.md` "A4").
-- ❓ **Encounter isolation** — the XP eligibility change is gated by the game's own
-  static-encounter flags (which should exclude real legendaries) and the result rewrite is
-  gated to battles where this mod forced the faint, **but neither has been tested against a
-  real legendary/trainer battle yet.** Treat as unsafe for scripted encounters until
-  validated.
-- ❓ **Intentional catching:** with the unified build, a *defeated* wild Pokémon is gone
-  (no catch screen). The base PWB mod has no in-battle "throw ball" action, so there is
-  currently no way to keep a Pokémon you battle. See the add-on / future "Catch variant"
-  note in the engineering log.
-- ❓ Save/reload persistence of gained levels/XP — untested.
+- ✅ **Evolution** after a KO-induced level-up (A4): verified — Caterpie leveled 6→7 on
+  wild-KO EXP and evolved into Metapod via the game's native evolution sequence.
+- ✅ **Trainer battles**: tested — fully vanilla (no mod hook fires; normal faints, XP,
+  victory flow).
+- ❓ **Real legendary / scripted encounters** — the XP eligibility change is gated by the
+  game's own static-encounter flags (which should exclude real legendaries) and the result
+  rewrite requires this mod's verified KO, **but neither has been tested against a real
+  legendary yet.** Treat as unsafe for scripted encounters until validated.
+- ✅ **Intentional catching:** use the **Catch Variant** (`mods/Wild Battles EXP (Catch
+  Variant)/`) — battle → KO → EXP → the normal catch screen stays. Mutually exclusive with
+  the main unified mod (enable exactly one). The main build auto-exits after a KO, so a
+  defeated Pokémon is gone.
+- ❓ Save/reload persistence of gained levels/XP — spot-checked via the user's save/reload during testing; full pass pending.
 
 ## Repo layout
 ```
