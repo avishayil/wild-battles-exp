@@ -83,10 +83,12 @@ Details, derivation, and the full debugging history are in [`docs/`](docs/) and
   wild-KO EXP and evolved into Metapod via the game's native evolution sequence.
 - ✅ **Trainer battles**: tested — fully vanilla (no mod hook fires; normal faints, XP,
   victory flow).
-- ❓ **Real legendary / scripted encounters** — the XP eligibility change is gated by the
-  game's own static-encounter flags (which should exclude real legendaries) and the result
-  rewrite requires this mod's verified KO, **but neither has been tested against a real
-  legendary yet.** Treat as unsafe for scripted encounters until validated.
+- ⛔ **OPEN RELEASE GATE — real legendary / scripted encounters (e.g. the Route 12/16
+  Snorlax):** the XP eligibility change is gated by the game's own static-encounter flags
+  (which should exclude real legendaries) and the result rewrite requires this mod's
+  verified KO, but **neither has been tested against a real static encounter yet** (the
+  development save is early-game). Until that regression passes, do not use this mod on a
+  save where you're about to fight Snorlax or a legendary — or disable it for that battle.
 - ✅ **Intentional catching:** use the **Catch Variant** (`mods/Wild Battles EXP (Catch
   Variant)/`) — battle → KO → EXP → the normal catch screen stays. Mutually exclusive with
   the main unified mod (enable exactly one). The main build auto-exits after a KO, so a

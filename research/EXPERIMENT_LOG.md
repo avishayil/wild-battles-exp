@@ -88,3 +88,45 @@ DECISION GATE: crash is BEFORE state 5 => state-5 result rewrite (PoC D) is PREM
 NEXT: find what object thread 0x50 locks (null +0x360) in the faint-completion, and why it's null
   in a PWB wild battle (recomp's model_joint_hook guards a missing model/joint here; Eevee 0xa9c700,
   Pikachu equivalent reads +0x1e0/+0x1e8/+0x192 - TBD). result stays 1 (not 3) because state 5 never runs.
+
+## Isolation test: TRAINER battle (2026-10-30 ~01:05, catch-variant build = hooks A/C/A2 active)
+Fully vanilla in-game: normal KOs, faint animations, XP, victory dialogue. Counters untouched:
+clear=0 (hook A never fired — instant-end flag not present in trainer battles), guard=0 (model
+guard passed through), 0 crashes. A2 bypass moot (trainer battles have +0x4A4==0 natively).
+=> First hard evidence of trainer-battle isolation. Remaining isolation: real legendary, scripted.
+
+## OPEN ISSUE (deferred, 2026-10-30 ~01:10): PP not preserved between PWB wild battles
+User report: ThunderShock always back at 30/30 PP from fight to fight, no Pokemon Center visit
+(observed under the catch variant). Likely BASE-PWB limitation: PWB synthesizes battles from the
+special/legendary system; the full end-of-battle write-back that persists PP in trainer battles may
+never run (the reflect fn 0x9E41D0 writes back HP/EXP/status only — PP not in its field list; and
+none of our hooks touch PP). TRIAGE PLAN: (1) user checks whether player HP persists after a
+damaging battle (HP persists+PP resets => base-PWB; HP resets too => no write-back at all);
+(2) attribution test under base PWB only (2 battles, watch PP). Handle after A4.
+
+## *** A4 EVOLUTION — PASS (2026-10-30 ~02:03) ***
+Finding: after-battle processor entry mem 0x319A60 (Eevee 0x319BC0 − 0x160); its state-0 handler
+reads the battle result [bd+0x508]: result==1 -> state 3, else -> state 4 (evolution SKIPPED).
+Our A3 result=3 therefore skipped evolution (Caterpie reached L7, no evolution).
+Fix (A4): hook the next-state write 0x319EC4 (str w8,[x19,#0x68]); when evolve_pending (+0xFF,
+set only by A3's verified-KO rewrite) && w8==4 -> w8=1 (the native evolution-check state); one-shot
+clear; +0xFF zeroed by the existing state-0 reset.
+Test: reloaded L6 Caterpie save, leveled 6->7 purely on wild-KO EXP -> native evolution cutscene ->
+METAPOD (screenshot). Battles still end faint->EXP->auto-exit. 0 crashes.
+Also: PP/HP persistence re-checked under hardened build: BOTH persist correctly between battles ->
+earlier PP report could not be reproduced; downgraded (recheck once more pre-release).
+
+## Regression matrix status (2026-10-30 ~02:10, v0.3.0-alpha)
+| Test | Status |
+|---|---|
+| Ordinary wild KO (XP, auto-exit) | PASS (many, incl. 2-KO+flee matrix) |
+| Flee (no XP-rewrite, vanilla end) | PASS (HP gate blocked rewrite) |
+| Trainer battle isolation | PASS (no hook fires, fully vanilla) |
+| Evolution on KO level-up (A4) | PASS (Caterpie 6->7 -> Metapod) |
+| Consecutive encounters / one-shot reset | PASS (REWRITE_CNT per-battle, flags re-arm) |
+| Catch variant: intentional catching | PASS (Caterpie caught under catch build) |
+| PP/HP persistence between battles | PASS under v0.3 (earlier PP report not reproduced) |
+| Multi-species HP capture | PARTIAL (Pidgey confirmed; more species advisable) |
+| Save/reload XP persistence | PARTIAL (user save/reload mid-session OK; full pass pending) |
+| **Scripted Snorlax (Route 12/16)** | **DEFERRED — unreachable in early-game save. OPEN RELEASE GATE** |
+| **Real legendary (e.g. Zapdos)** | **DEFERRED — unreachable in early-game save. OPEN RELEASE GATE** |
