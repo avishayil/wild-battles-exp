@@ -82,4 +82,4 @@ the marker-writing setup (`0x305970`) via a retargeted `bl` at `0x305934` inside
 can't prove the marker is exclusive to ordinary-wild encounters. PWB keys its own
 kind-9-vs-10 choice and state patch on the **native** field `[evt+0x735]` (it only reads,
 never writes it), which is the candidate discriminator to confirm on a real static encounter.
-See `WBEXP_STATIC_CALLGRAPH.md` (repo-external).
+See `WBEXP_STATIC_CALLGRAPH.md`.

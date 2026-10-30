@@ -83,8 +83,8 @@ encounter, not just hook A/A3.
 - **Catch Variant now clears `pwb_encounter`.** It included hook M (which sets the marker) but
   not hook E (which clears it), so the marker leaked into later battles. Hook E is now part of
   the variant; its A4 state-redirect stays inert there (`evolve_pending` is never set).
-- Static call-graph report of PWB's injection seam added (`WBEXP_STATIC_CALLGRAPH.md`, repo-
-  external): marker mechanism fully mapped; its enclosing function is virtually dispatched so
+- Static call-graph report of PWB's injection seam added (`docs/WBEXP_STATIC_CALLGRAPH.md`):
+  marker mechanism fully mapped; its enclosing function is virtually dispatched so
   exclusivity can't be proven offline; a native discriminator `[evt+0x735]` identified as the
   thing to measure in the live Snorlax/legendary test.
 - Differential vs v0.4.0: unified changes limited to cave_C + cave_P (`+0xF8` gate); catch adds

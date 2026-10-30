@@ -147,7 +147,7 @@ flag is true only during a PWB wild battle; A4 clears it after each battle (re-a
 encounter). A, A2 and C all require it. Caveat: PWB's setup is reached by virtual dispatch, so
 static analysis can't prove the marker never fires for a genuine static encounter — PWB's
 native discriminator `[evt+0x735]` is the lead to confirm on a live Snorlax (see
-`WBEXP_STATIC_CALLGRAPH.md`, repo-external).
+`WBEXP_STATIC_CALLGRAPH.md`).
 
 ## 5. Code cave & scratch
 - **Cave:** the loader page-aligns the `.text` segment size up
@@ -175,7 +175,7 @@ native discriminator `[evt+0x735]` is the lead to confirm on a live Snorlax (see
 - **Real static encounter:** a scripted **Snorlax** / **legendary** must stay fully vanilla
   (capture intact). PWB reuses that exact battle system, and the marker's exclusivity can't be
   proven offline (virtual dispatch) — measure `pwb_encounter` and `[evt+0x735]` on a live one.
-  This is the gate holding public beta. See `WBEXP_STATIC_CALLGRAPH.md` (repo-external).
+  This is the gate holding public beta. See `WBEXP_STATIC_CALLGRAPH.md`.
 - **Multi-species HP** capture (widen past the observed slot `12`), a dedicated **save/reload**
   persistence pass, and a **PP** control test (base PWB vs EXP vs Catch Variant).
 - **Catch-during-battle:** base PWB can't throw a ball mid-battle; a battle CATCH action
