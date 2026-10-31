@@ -43,20 +43,28 @@ def session():
     while True:
         time.sleep(1.0)
         d=r.rd(SB,0x100)
-        if not d or len(d)<0xFE: continue
+        if not d or len(d)<0xFF: continue
+        # hardened build: +0x34 clear | +0x40 state +0x44 mask +0x58 result +0xC8 wild_hp
+        # +0xD8 guard +0xE0 rewrite_cnt +0xFC armed +0xFD done +0xFE have
         clr,=struct.unpack_from('<I',d,0x34)
-        last_state,seen=struct.unpack_from('<II',d,0x40)
-        result,entry_cnt=struct.unpack_from('<II',d,0x58)
-        guard_hit,=struct.unpack_from('<I',d,0xD8)
-        rewrite_cnt,=struct.unpack_from('<I',d,0xE0)
-        armed,done=d[0xFC],d[0xFD]
-        cur=(clr,last_state,seen,result,guard_hit,rewrite_cnt,armed,done)
+        state,seen=struct.unpack_from('<II',d,0x40)
+        result,=struct.unpack_from('<I',d,0x58)
+        pe,=struct.unpack_from('<I',d,0xF8)   # v0.4 pwb_encounter (set by HOOK_M, cleared after battle)
+        wild_hp,=struct.unpack_from('<I',d,0xC8)
+        species,=struct.unpack_from('<I',d,0xCC)  # v0.5 cave_R: wild species (u16, zero-ext)
+        maxhp,=struct.unpack_from('<I',d,0xD0)    # v0.5 cave_R: wild max HP
+        slot=d[0xD4]                              # v0.5 cave_R: actual battle-slot id captured
+        guard,=struct.unpack_from('<I',d,0xD8)
+        rw,=struct.unpack_from('<I',d,0xE0)
+        a2,=struct.unpack_from('<I',d,0xE4)
+        armed,done,have=d[0xFC],d[0xFD],d[0xFE]
+        cur=(clr,state,seen,result,pe,wild_hp,species,maxhp,slot,guard,rw,a2,armed,done,have)
         if cur!=prev:
             prev=cur
             states=' '.join(str(i) for i in range(16) if seen&(1<<i))
-            s5='STATE5!' if seen&(1<<5) else ''
-            out(f'states=[{states}]{s5} result={result} | clear={clr} guard={guard_hit} '
-                f'armed={armed} done={done} REWRITE_CNT={rewrite_cnt}')
+            out(f'states=[{states}] result={result} | PWB_ENC={pe} clear={clr} guard={guard} A2_PWB={a2} '
+                f'armed={armed} have={have} WILD_HP={wild_hp} SPECIES={species} MAXHP={maxhp} SLOT={slot} '
+                f'done={done} REWRITE_CNT={rw}')
 out('waiting for gdbstub…')
 while True:
     try: session()

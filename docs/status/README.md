@@ -13,3 +13,4 @@ interoperability data; no game code, assets, keys, or personal data appear here.
 | [REVIEWER_STATUS_V030.md](REVIEWER_STATUS_V030.md) | 2026-10-30 | v0.3.0-alpha: verified-KO gate, evolution (A4), catch variant; release-gate map. |
 | [REVIEWER_STATUS_V040.md](REVIEWER_STATUS_V040.md) | 2026-10-30 | v0.4.0-alpha: per-encounter PWB isolation via hook M; reframed the Snorlax gate. |
 | [REVIEWER_STATUS_V041.md](REVIEWER_STATUS_V041.md) | 2026-10-30 | v0.4.1-alpha: three P0 scoping fixes (A2/C marker-gate, catch cleanup) + static call-graph. |
+| [REVIEWER_STATUS_V050.md](REVIEWER_STATUS_V050.md) | 2026-10-31 | v0.5.0-beta: identity/ownership hardening + trace-assertion harness; KO/flee/trainer/timeout/blackout/save-reload live-verified; Snorlax gate deferred. |

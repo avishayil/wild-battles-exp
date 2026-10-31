@@ -29,7 +29,7 @@ at memory offset `M`, the pchtxt record address is **`M + 0x100`**.
 |---|---|
 | `[evt+0x68]` | battle-event **state** word (0,1,2,3,4,5,…; 4 = command menu) |
 | `[evt+0x574] & 0x80` | legendary **instant-end** flag. Clear it (after the menu) → the wild Pokémon faints. |
-| `[evt+0x720] → [+0x68] → [+0x508]` | **result chain**. `[+0x508]`: `1` = normal/faint, `3` = fainted-no-capture. A3 writes `3`. |
+| `[evt+0x720] → [+0x68] → [+0x508]` | **result chain**. `[+0x508]`: `1` = normal/faint (in battle), `3` = fainted-no-capture (A3 writes this; the game also uses `3` for a flee), `2` = time-up (timeout), `0` = player lost / blackout. (Codes `0`/`2` observed live in v0.5; the A3 gate requires `1`, so both are excluded.) |
 | `[evt+0x562]` | special-battle time limit ("MATCH TIME"). |
 
 ## Battle-setup fields (relative to `setup = [x0+0x80]` in the predicate)
@@ -45,7 +45,7 @@ at memory offset `M`, the pchtxt record address is **`M + 0x100`**.
 | `[b+0x78]` | species (u16; confirmed 16 = Pidgey) |
 | `[b+0x7c]` | max HP (u16) |
 | `[b+0x7e]` | **current HP** (u16; 0 after a KO — the A3 gate reads the captured copy) |
-| `[b+0x87]` | battle-slot id (byte; 0–5 = player party, **12 = the wild Pokémon**) |
+| `[b+0x87]` | battle-slot id (byte; 0–5 = player party, **12 = the wild Pokémon**). v0.5 live: observed `12` on 84/84 captured samples across 4+ species — safe to tighten `>=6` to `==12` if ever desired. |
 Reflect fires at battle end (KO **and** flee), so the capture also records a live HP on flee — which is exactly what lets the A3 gate reject non-KO endings.
 
 ## Model fields (relative to `model = x0` in `0xA9C650`)
@@ -65,7 +65,7 @@ Guard **returns no-joint** (x0=0) when `model!=0 && [+0x1e0]==0 && !([+0x192]!=0
 ## Scratch layout (this mod's instrumentation; inert for gameplay)
 `+0x34` clear-count · `+0x40` last state · `+0x44` states-seen mask · `+0x48` `[evt+0x720]` ·
 `+0x50` `[+0x68]` · `+0x58` result · `+0x5c` entry-count · `+0xB0` model-joint entry-count ·
-`+0xD8` guard-hit count · `+0xE0` result-rewrite count · `+0xE4` A2 PWB-match count · `+0xC8` captured wild HP · `+0xF8` **pwb_encounter** (v0.4: set by hook M, cleared by hook E — the per-encounter PWB identity; hooks **A, A2 and C** all gate on it as of v0.4.1) · `+0xFC` armed · `+0xFD` done · `+0xFE` have (wild HP captured) · `+0xFF` evolve_pending (A4). The state-0 reset zeroes `+0xFC..+0xFF` with one u32 store; `+0xF8` is a separate u32 slot.
+`+0xD8` guard-hit count · `+0xE0` result-rewrite count · `+0xE4` A2 PWB-match count · `+0xC8` captured wild HP · `+0xCC` wild species (v0.5) · `+0xD0` wild max HP (v0.5) · `+0xD4` captured battle-slot id (byte, v0.5) · `+0xF8` **pwb_encounter** (v0.4: set by hook M, cleared by hook E — the per-encounter PWB identity; hooks **A, A2 and C** all gate on it as of v0.4.1) · `+0xFC` armed · `+0xFD` done · `+0xFE` have (wild HP captured) · `+0xFF` evolve_pending (A4). The state-0 reset zeroes `+0xFC..+0xFF` with one u32 store; `+0xF8` is a separate u32 slot.
 
 ## Base PWB1 (RicoSantos) — for reference
 Injected routine at mem `0x305970` (pchtxt `0x305A70`, `FD7BBBA9…`), entered via a `bl`

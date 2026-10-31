@@ -138,7 +138,7 @@ def cave_C(text, base):   # PoC C v2: model-joint guard (recomp port), gated on 
 
 def cave_ST(text, base):  # entry hook: reset flags@state0; result 1->3 @state5 on VERIFIED KO (one-shot)
     A = lambda i: base+i*4
-    Lnot0, Lchain, Ldone = A(8), A(15), A(44)
+    Lnot0, Lchain, Ldone = A(8), A(15), A(48)
     w = [STP_910, STP_1617, ADRP_SCRATCH, ADD_F00, ldr_w(17,0,0x68), str_w(17,16,0x40),
          cbnz_w(17,A(6),Lnot0), str_w(31,16,0xFC),     # state==0: zero armed/done/have (u32 @+0xFC)
          cmp_i(17,31), bcond(HI,A(9),Lchain),
@@ -152,6 +152,8 @@ def cave_ST(text, base):  # entry hook: reset flags@state0; result 1->3 @state5 
          ldrb_w(9,16,0xFD), cbnz_w(9,A(31),Ldone),                  # !done (one-shot)
          ldrb_w(9,16,0xFE), cbz_w(9,A(33),Ldone),                   # have (wild HP captured)
          ldr_w(9,16,0xC8), cbnz_w(9,A(35),Ldone),                   # wild HP == 0 (verified KO)
+         ldrb_w(9,16,0xF8), cbz_w(9,A(37),Ldone),                   # 36,37 pwb_encounter still set
+         ldr_w(9,16,0xCC), cbz_w(9,A(39),Ldone),                    # 38,39 species != 0 (valid capture)
          movz_w(9,3), str_w(9,10,0x508),              # result = 3 ("fainted, no capture")
          movz_w(9,1), strb_w(9,16,0xFD),              # done = 1
          strb_w(9,16,0xFF),                           # evolve_pending = 1 (A4)
@@ -185,15 +187,23 @@ def cave_P(text, base):  # A2 v3: conditional XP eligibility — PWB ENCOUNTER +
          LDP_1617, disp(text,HOOK_P)]                                      # 20=Lorig: restore + original
     return w + [ret_branch(w, base, HOOK_P+4)]
 
-def cave_R(text, base):  # reflect capture: wild (slot>=6) HP -> scratch +0xC8, have=1 @+0xFE
+def cave_R(text, base):  # reflect capture (v0.5): record wild opponent identity, PWB encounter only
+    # Only capture during an active PWB encounter (+0xF8). For the wild slot (>=6) record the
+    # actual slot id (+0xD4), current HP (+0xC8), species (+0xCC) and max HP (+0xD0), and set
+    # have (+0xFE). The extra fields let A3 sanity-check the capture and let live testing verify
+    # the wild slot/species across multiple encounters before any slot tightening.
     A = lambda i: base+i*4
     LO = 3
-    Lskip = A(10)
+    Lskip = A(17)
     w = [STP_1617, ADRP_SCRATCH, ADD_F00,
-         ldrb_w(17,0,0x87), cmp_i(17,6), bcond(LO,A(5),Lskip),
-         ldrh_w(17,0,0x7e), str_w(17,16,0xC8),
-         movz_w(17,1), strb_w(17,16,0xFE),
-         LDP_1617, disp(text,HOOK_R)]
+         ldrb_w(17,16,0xF8), cbz_w(17,A(4),Lskip),              # 3,4  pwb_encounter? else skip
+         ldrb_w(17,0,0x87), cmp_i(17,6), bcond(LO,A(7),Lskip),  # 5-7  wild slot (>=6)?
+         strb_w(17,16,0xD4),                                    # 8    record actual slot id
+         ldrh_w(17,0,0x7e), str_w(17,16,0xC8),                  # 9,10  current HP -> +0xC8
+         ldrh_w(17,0,0x78), str_w(17,16,0xCC),                  # 11,12 species   -> +0xCC
+         ldrh_w(17,0,0x7c), str_w(17,16,0xD0),                  # 13,14 max HP     -> +0xD0
+         movz_w(17,1), strb_w(17,16,0xFE),                      # 15,16 have = 1
+         LDP_1617, disp(text,HOOK_R)]                           # 17 = Lskip
     return w + [ret_branch(w, base, HOOK_R+4)]
 
 def cave_E(text, base):  # A4: after-battle next-state redirect 4 -> 1 when evolve_pending (one-shot)

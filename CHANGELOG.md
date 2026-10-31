@@ -95,3 +95,27 @@ encounter, not just hook A/A3.
   flee, marker cleared on both the capture and flee paths with no leak into the next battle.
 - Still open (unchanged): a live scripted-Snorlax/legendary isolation test (the beta gate),
   multi-species HP validation, a save/reload persistence pass, and a PP control test.
+
+## v0.5.0-beta — battle-engine stability
+Release-hardening pass: tighten opponent identity / end-state ownership and add a replayable
+trace-assertion harness, so the ordinary-wild loop is safe enough for a beta.
+- **cave_R (HP capture) hardened:** captures only during an active PWB encounter (`pwb_encounter`),
+  and now records the wild **slot** (`+0xD4`), **species** (`+0xCC`) and **max HP** (`+0xD0`)
+  alongside current HP — so the verified-KO gate can sanity-check the capture and so the wild
+  slot/species can be validated across encounters.
+- **A3 result rewrite hardened:** now requires `pwb_encounter` and `species != 0` on top of the
+  existing `have && wild_HP == 0`, rejecting stale/garbage captures.
+- **New `tools/trace_assert.py`:** replays a reader trace and asserts the invariants (marker set
+  then cleared per encounter; hooks never fire outside a PWB encounter; KO rewrites exactly once
+  with `result==3 / HP==0 / SLOT==12 / species!=0`; non-KO endings never rewrite). A real
+  known-good run is kept as `tools/fixtures/trace-v0.5-20261031.log`.
+- Differential vs v0.4.1: unified changes limited to cave_R and cave_ST; catch variant logic
+  unchanged (relocated).
+- **Live-verified (gdbstub trace):** wild KOs across 4+ species (`SLOT=12` on every one of 84
+  captured samples), flees (no rewrite), a fully-vanilla trainer battle, a **battle timeout**
+  (`result=2` → no EXP), a **black-out** (`result=0` → no false EXP, **and the marker clears on
+  the player-loss path** — closing a prior open question about stale scratch), and **save → quit
+  → relaunch** (party/XP persisted; mod re-armed cleanly on the fresh session).
+- **One pending gate before promotion:** the live scripted-Snorlax / legendary isolation test
+  (blocked on a late-game save). PP persistence and the Catch-Variant double-EXP measurement
+  remain optional follow-ups. Public beta stays held until the static-encounter test passes.
