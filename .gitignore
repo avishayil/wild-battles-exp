@@ -24,3 +24,5 @@ __pycache__/
 # local tooling logs
 scratchread.log
 *.log
+# ...but DO track committed trace fixtures (regression/research data)
+!tools/fixtures/*.log

@@ -176,8 +176,12 @@ native discriminator `[evt+0x735]` is the lead to confirm on a live Snorlax (see
   (capture intact). PWB reuses that exact battle system, and the marker's exclusivity can't be
   proven offline (virtual dispatch) — measure `pwb_encounter` and `[evt+0x735]` on a live one.
   This is the gate holding public beta. See `WBEXP_STATIC_CALLGRAPH.md`.
-- **Multi-species HP** capture (widen past the observed slot `12`), a dedicated **save/reload**
-  persistence pass, and a **PP** control test (base PWB vs EXP vs Catch Variant).
+- **Catch Variant double-EXP** check, a **PP** control test, and a dedicated **save/reload**
+  persistence pass (multi-species HP already confirmed: slot `12` on 84/84 samples).
+- **EXP multipliers (75%/50%) — deferred.** A bounded probe found the native `0x9D3BA0` "amount"
+  returns 0 for PWB and the message-number path (`0xA6EF80`) doesn't carry the amount; the real
+  award seam is unpinned. Resume via the **award/write path** (the gain-experience routine or a
+  party-EXP memory-watch), not the display. Full checkpoint: `research/EXP_SEAM_INVESTIGATION.md`.
 - **Catch-during-battle:** base PWB can't throw a ball mid-battle; a battle CATCH action
   (recomp has related work) would merge the two variants. Post-beta.
 

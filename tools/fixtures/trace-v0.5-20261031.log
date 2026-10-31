@@ -1,0 +1,134 @@
+[23:32:44] waiting for gdbstub…
+[23:33:10] connected base=0x80907000
+[23:33:10] resumed; play into a wild battle, sit at menu
+[23:33:11] states=[] result=0 | PWB_ENC=0 clear=0 guard=0 A2_PWB=0 armed=0 have=0 WILD_HP=0 SPECIES=0 MAXHP=0 SLOT=0 done=0 REWRITE_CNT=0
+[23:33:56] states=[0 1] result=0 | PWB_ENC=1 clear=0 guard=0 A2_PWB=0 armed=0 have=0 WILD_HP=0 SPECIES=0 MAXHP=0 SLOT=0 done=0 REWRITE_CNT=0
+[23:33:57] states=[0 1 2 3 4] result=1 | PWB_ENC=1 clear=1 guard=0 A2_PWB=0 armed=1 have=0 WILD_HP=0 SPECIES=0 MAXHP=0 SLOT=0 done=0 REWRITE_CNT=0
+[23:34:05] states=[0 1 2 3 4] result=1 | PWB_ENC=1 clear=1 guard=0 A2_PWB=1 armed=1 have=0 WILD_HP=0 SPECIES=0 MAXHP=0 SLOT=0 done=0 REWRITE_CNT=0
+[23:34:08] states=[0 1 2 3 4] result=1 | PWB_ENC=1 clear=1 guard=1 A2_PWB=1 armed=1 have=0 WILD_HP=0 SPECIES=0 MAXHP=0 SLOT=0 done=0 REWRITE_CNT=0
+[23:34:09] states=[0 1 2 3 4] result=1 | PWB_ENC=1 clear=1 guard=2 A2_PWB=1 armed=1 have=0 WILD_HP=0 SPECIES=0 MAXHP=0 SLOT=0 done=0 REWRITE_CNT=0
+[23:34:12] states=[0 1 2 3 4 5 6 7 8] result=3 | PWB_ENC=0 clear=1 guard=2 A2_PWB=1 armed=1 have=1 WILD_HP=0 SPECIES=16 MAXHP=22 SLOT=12 done=1 REWRITE_CNT=1
+[23:34:13] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=3 | PWB_ENC=0 clear=1 guard=2 A2_PWB=1 armed=1 have=1 WILD_HP=0 SPECIES=16 MAXHP=22 SLOT=12 done=1 REWRITE_CNT=1
+[23:34:22] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=3 | PWB_ENC=1 clear=1 guard=2 A2_PWB=1 armed=0 have=0 WILD_HP=0 SPECIES=16 MAXHP=22 SLOT=12 done=0 REWRITE_CNT=1
+[23:34:23] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=3 | PWB_ENC=1 clear=1 guard=2 A2_PWB=1 armed=0 have=0 WILD_HP=0 SPECIES=16 MAXHP=22 SLOT=12 done=0 REWRITE_CNT=1
+[23:34:24] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=2 guard=2 A2_PWB=1 armed=1 have=0 WILD_HP=0 SPECIES=16 MAXHP=22 SLOT=12 done=0 REWRITE_CNT=1
+[23:34:30] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=2 guard=2 A2_PWB=8 armed=1 have=0 WILD_HP=0 SPECIES=16 MAXHP=22 SLOT=12 done=0 REWRITE_CNT=1
+[23:34:39] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=2 guard=2 A2_PWB=9 armed=1 have=0 WILD_HP=0 SPECIES=16 MAXHP=22 SLOT=12 done=0 REWRITE_CNT=1
+[23:34:43] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=2 guard=4 A2_PWB=9 armed=1 have=0 WILD_HP=0 SPECIES=16 MAXHP=22 SLOT=12 done=0 REWRITE_CNT=1
+[23:34:46] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=3 | PWB_ENC=0 clear=2 guard=4 A2_PWB=9 armed=1 have=1 WILD_HP=0 SPECIES=10 MAXHP=21 SLOT=12 done=1 REWRITE_CNT=2
+[23:34:47] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=3 | PWB_ENC=0 clear=2 guard=4 A2_PWB=9 armed=1 have=1 WILD_HP=0 SPECIES=10 MAXHP=21 SLOT=12 done=1 REWRITE_CNT=2
+[23:34:51] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=3 | PWB_ENC=1 clear=2 guard=4 A2_PWB=9 armed=0 have=0 WILD_HP=0 SPECIES=10 MAXHP=21 SLOT=12 done=0 REWRITE_CNT=2
+[23:34:52] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=3 guard=4 A2_PWB=9 armed=1 have=0 WILD_HP=0 SPECIES=10 MAXHP=21 SLOT=12 done=0 REWRITE_CNT=2
+[23:34:59] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=3 guard=4 A2_PWB=11 armed=1 have=0 WILD_HP=0 SPECIES=10 MAXHP=21 SLOT=12 done=0 REWRITE_CNT=2
+[23:35:00] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=3 | PWB_ENC=1 clear=3 guard=4 A2_PWB=11 armed=1 have=1 WILD_HP=18 SPECIES=14 MAXHP=18 SLOT=12 done=0 REWRITE_CNT=2
+[23:35:01] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=3 | PWB_ENC=0 clear=3 guard=4 A2_PWB=11 armed=1 have=1 WILD_HP=18 SPECIES=14 MAXHP=18 SLOT=12 done=0 REWRITE_CNT=2
+[23:35:02] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=3 | PWB_ENC=0 clear=3 guard=4 A2_PWB=11 armed=1 have=1 WILD_HP=18 SPECIES=14 MAXHP=18 SLOT=12 done=0 REWRITE_CNT=2
+[23:35:12] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=3 | PWB_ENC=1 clear=3 guard=4 A2_PWB=11 armed=0 have=0 WILD_HP=18 SPECIES=14 MAXHP=18 SLOT=12 done=0 REWRITE_CNT=2
+[23:35:13] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=4 guard=4 A2_PWB=11 armed=1 have=0 WILD_HP=18 SPECIES=14 MAXHP=18 SLOT=12 done=0 REWRITE_CNT=2
+[23:35:20] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=4 guard=4 A2_PWB=13 armed=1 have=0 WILD_HP=18 SPECIES=14 MAXHP=18 SLOT=12 done=0 REWRITE_CNT=2
+[23:35:22] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=3 | PWB_ENC=0 clear=4 guard=4 A2_PWB=13 armed=1 have=1 WILD_HP=18 SPECIES=10 MAXHP=18 SLOT=12 done=0 REWRITE_CNT=2
+[23:35:23] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=3 | PWB_ENC=0 clear=4 guard=4 A2_PWB=13 armed=1 have=1 WILD_HP=18 SPECIES=10 MAXHP=18 SLOT=12 done=0 REWRITE_CNT=2
+[23:35:36] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=3 | PWB_ENC=0 clear=4 guard=4 A2_PWB=13 armed=0 have=0 WILD_HP=18 SPECIES=10 MAXHP=18 SLOT=12 done=0 REWRITE_CNT=2
+[23:35:39] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=0 clear=4 guard=4 A2_PWB=13 armed=0 have=0 WILD_HP=18 SPECIES=10 MAXHP=18 SLOT=12 done=0 REWRITE_CNT=2
+[23:36:18] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=0 clear=4 guard=4 A2_PWB=13 armed=0 have=0 WILD_HP=18 SPECIES=10 MAXHP=18 SLOT=12 done=0 REWRITE_CNT=2
+[23:36:35] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=4 guard=4 A2_PWB=13 armed=0 have=0 WILD_HP=18 SPECIES=10 MAXHP=18 SLOT=12 done=0 REWRITE_CNT=2
+[23:36:36] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=4 guard=4 A2_PWB=13 armed=0 have=0 WILD_HP=18 SPECIES=10 MAXHP=18 SLOT=12 done=0 REWRITE_CNT=2
+[23:36:37] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=5 guard=4 A2_PWB=13 armed=1 have=0 WILD_HP=18 SPECIES=10 MAXHP=18 SLOT=12 done=0 REWRITE_CNT=2
+[23:36:44] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=5 guard=4 A2_PWB=14 armed=1 have=0 WILD_HP=18 SPECIES=10 MAXHP=18 SLOT=12 done=0 REWRITE_CNT=2
+[23:36:48] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=5 guard=6 A2_PWB=14 armed=1 have=0 WILD_HP=18 SPECIES=10 MAXHP=18 SLOT=12 done=0 REWRITE_CNT=2
+[23:36:51] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=3 | PWB_ENC=0 clear=5 guard=6 A2_PWB=14 armed=1 have=1 WILD_HP=0 SPECIES=16 MAXHP=18 SLOT=12 done=1 REWRITE_CNT=3
+[23:36:52] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=3 | PWB_ENC=0 clear=5 guard=6 A2_PWB=14 armed=1 have=1 WILD_HP=0 SPECIES=16 MAXHP=18 SLOT=12 done=1 REWRITE_CNT=3
+[23:37:16] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=3 | PWB_ENC=1 clear=5 guard=6 A2_PWB=14 armed=0 have=0 WILD_HP=0 SPECIES=16 MAXHP=18 SLOT=12 done=0 REWRITE_CNT=3
+[23:37:17] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=6 guard=6 A2_PWB=14 armed=1 have=0 WILD_HP=0 SPECIES=16 MAXHP=18 SLOT=12 done=0 REWRITE_CNT=3
+[23:37:26] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=6 guard=6 A2_PWB=15 armed=1 have=0 WILD_HP=0 SPECIES=16 MAXHP=18 SLOT=12 done=0 REWRITE_CNT=3
+[23:37:30] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=6 guard=8 A2_PWB=15 armed=1 have=0 WILD_HP=0 SPECIES=16 MAXHP=18 SLOT=12 done=0 REWRITE_CNT=3
+[23:37:43] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=3 | PWB_ENC=0 clear=6 guard=8 A2_PWB=15 armed=1 have=1 WILD_HP=0 SPECIES=16 MAXHP=21 SLOT=12 done=1 REWRITE_CNT=4
+[23:37:44] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=3 | PWB_ENC=0 clear=6 guard=8 A2_PWB=15 armed=1 have=1 WILD_HP=0 SPECIES=16 MAXHP=21 SLOT=12 done=1 REWRITE_CNT=4
+[23:37:54] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=3 | PWB_ENC=1 clear=6 guard=8 A2_PWB=15 armed=0 have=0 WILD_HP=0 SPECIES=16 MAXHP=21 SLOT=12 done=0 REWRITE_CNT=4
+[23:37:55] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=3 | PWB_ENC=1 clear=6 guard=8 A2_PWB=15 armed=0 have=0 WILD_HP=0 SPECIES=16 MAXHP=21 SLOT=12 done=0 REWRITE_CNT=4
+[23:37:56] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=7 guard=8 A2_PWB=15 armed=1 have=0 WILD_HP=0 SPECIES=16 MAXHP=21 SLOT=12 done=0 REWRITE_CNT=4
+[23:38:02] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=7 guard=8 A2_PWB=17 armed=1 have=0 WILD_HP=0 SPECIES=16 MAXHP=21 SLOT=12 done=0 REWRITE_CNT=4
+[23:38:03] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=3 | PWB_ENC=1 clear=7 guard=8 A2_PWB=17 armed=1 have=1 WILD_HP=18 SPECIES=10 MAXHP=18 SLOT=12 done=0 REWRITE_CNT=4
+[23:38:04] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=3 | PWB_ENC=0 clear=7 guard=8 A2_PWB=17 armed=1 have=1 WILD_HP=18 SPECIES=10 MAXHP=18 SLOT=12 done=0 REWRITE_CNT=4
+[23:39:19] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=3 | PWB_ENC=1 clear=7 guard=8 A2_PWB=17 armed=0 have=0 WILD_HP=18 SPECIES=10 MAXHP=18 SLOT=12 done=0 REWRITE_CNT=4
+[23:39:20] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=8 guard=8 A2_PWB=17 armed=1 have=0 WILD_HP=18 SPECIES=10 MAXHP=18 SLOT=12 done=0 REWRITE_CNT=4
+[23:39:40] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=8 guard=8 A2_PWB=19 armed=1 have=0 WILD_HP=18 SPECIES=10 MAXHP=18 SLOT=12 done=0 REWRITE_CNT=4
+[23:39:41] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=3 | PWB_ENC=1 clear=8 guard=8 A2_PWB=19 armed=1 have=1 WILD_HP=15 SPECIES=16 MAXHP=15 SLOT=12 done=0 REWRITE_CNT=4
+[23:39:42] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=3 | PWB_ENC=0 clear=8 guard=8 A2_PWB=19 armed=1 have=1 WILD_HP=15 SPECIES=16 MAXHP=15 SLOT=12 done=0 REWRITE_CNT=4
+[23:42:10] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=3 | PWB_ENC=1 clear=8 guard=8 A2_PWB=19 armed=0 have=0 WILD_HP=15 SPECIES=16 MAXHP=15 SLOT=12 done=0 REWRITE_CNT=4
+[23:42:11] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=9 guard=8 A2_PWB=19 armed=1 have=0 WILD_HP=15 SPECIES=16 MAXHP=15 SLOT=12 done=0 REWRITE_CNT=4
+[23:42:23] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=9 guard=8 A2_PWB=26 armed=1 have=0 WILD_HP=15 SPECIES=16 MAXHP=15 SLOT=12 done=0 REWRITE_CNT=4
+[23:42:35] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=9 guard=8 A2_PWB=33 armed=1 have=0 WILD_HP=15 SPECIES=16 MAXHP=15 SLOT=12 done=0 REWRITE_CNT=4
+[23:42:44] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=9 guard=8 A2_PWB=40 armed=1 have=0 WILD_HP=15 SPECIES=16 MAXHP=15 SLOT=12 done=0 REWRITE_CNT=4
+[23:42:48] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=9 guard=8 A2_PWB=47 armed=1 have=0 WILD_HP=15 SPECIES=16 MAXHP=15 SLOT=12 done=0 REWRITE_CNT=4
+[23:43:00] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=9 guard=8 A2_PWB=54 armed=1 have=0 WILD_HP=15 SPECIES=16 MAXHP=15 SLOT=12 done=0 REWRITE_CNT=4
+[23:43:11] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=9 guard=8 A2_PWB=61 armed=1 have=0 WILD_HP=15 SPECIES=16 MAXHP=15 SLOT=12 done=0 REWRITE_CNT=4
+[23:43:16] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=9 guard=8 A2_PWB=68 armed=1 have=0 WILD_HP=15 SPECIES=16 MAXHP=15 SLOT=12 done=0 REWRITE_CNT=4
+[23:43:23] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=9 guard=8 A2_PWB=75 armed=1 have=0 WILD_HP=15 SPECIES=16 MAXHP=15 SLOT=12 done=0 REWRITE_CNT=4
+[23:43:27] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=9 guard=8 A2_PWB=82 armed=1 have=0 WILD_HP=15 SPECIES=16 MAXHP=15 SLOT=12 done=0 REWRITE_CNT=4
+[23:43:34] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=9 guard=8 A2_PWB=89 armed=1 have=0 WILD_HP=15 SPECIES=16 MAXHP=15 SLOT=12 done=0 REWRITE_CNT=4
+[23:43:38] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=9 guard=8 A2_PWB=96 armed=1 have=0 WILD_HP=15 SPECIES=16 MAXHP=15 SLOT=12 done=0 REWRITE_CNT=4
+[23:43:46] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=9 guard=8 A2_PWB=103 armed=1 have=0 WILD_HP=15 SPECIES=16 MAXHP=15 SLOT=12 done=0 REWRITE_CNT=4
+[23:43:49] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=9 guard=8 A2_PWB=110 armed=1 have=0 WILD_HP=15 SPECIES=16 MAXHP=15 SLOT=12 done=0 REWRITE_CNT=4
+[23:43:53] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=9 guard=8 A2_PWB=117 armed=1 have=0 WILD_HP=15 SPECIES=16 MAXHP=15 SLOT=12 done=0 REWRITE_CNT=4
+[23:43:57] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=9 guard=8 A2_PWB=124 armed=1 have=0 WILD_HP=15 SPECIES=16 MAXHP=15 SLOT=12 done=0 REWRITE_CNT=4
+[23:44:04] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=9 guard=8 A2_PWB=131 armed=1 have=0 WILD_HP=15 SPECIES=16 MAXHP=15 SLOT=12 done=0 REWRITE_CNT=4
+[23:44:08] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=9 guard=8 A2_PWB=138 armed=1 have=0 WILD_HP=15 SPECIES=16 MAXHP=15 SLOT=12 done=0 REWRITE_CNT=4
+[23:44:13] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=9 guard=8 A2_PWB=145 armed=1 have=0 WILD_HP=15 SPECIES=16 MAXHP=15 SLOT=12 done=0 REWRITE_CNT=4
+[23:44:16] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=2 | PWB_ENC=1 clear=9 guard=8 A2_PWB=145 armed=1 have=0 WILD_HP=15 SPECIES=16 MAXHP=15 SLOT=12 done=0 REWRITE_CNT=4
+[23:44:17] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=2 | PWB_ENC=0 clear=9 guard=8 A2_PWB=145 armed=1 have=1 WILD_HP=17 SPECIES=16 MAXHP=17 SLOT=12 done=0 REWRITE_CNT=4
+[23:44:18] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=2 | PWB_ENC=0 clear=9 guard=8 A2_PWB=145 armed=1 have=1 WILD_HP=17 SPECIES=16 MAXHP=17 SLOT=12 done=0 REWRITE_CNT=4
+[23:44:19] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=2 | PWB_ENC=1 clear=9 guard=8 A2_PWB=145 armed=0 have=0 WILD_HP=17 SPECIES=16 MAXHP=17 SLOT=12 done=0 REWRITE_CNT=4
+[23:44:20] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=10 guard=8 A2_PWB=145 armed=1 have=0 WILD_HP=17 SPECIES=16 MAXHP=17 SLOT=12 done=0 REWRITE_CNT=4
+[23:44:33] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=10 guard=8 A2_PWB=152 armed=1 have=0 WILD_HP=17 SPECIES=16 MAXHP=17 SLOT=12 done=0 REWRITE_CNT=4
+[23:44:38] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=10 guard=8 A2_PWB=159 armed=1 have=0 WILD_HP=17 SPECIES=16 MAXHP=17 SLOT=12 done=0 REWRITE_CNT=4
+[23:44:47] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=10 guard=8 A2_PWB=166 armed=1 have=0 WILD_HP=17 SPECIES=16 MAXHP=17 SLOT=12 done=0 REWRITE_CNT=4
+[23:45:01] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=10 guard=8 A2_PWB=173 armed=1 have=0 WILD_HP=17 SPECIES=16 MAXHP=17 SLOT=12 done=0 REWRITE_CNT=4
+[23:45:10] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=10 guard=8 A2_PWB=174 armed=1 have=0 WILD_HP=17 SPECIES=16 MAXHP=17 SLOT=12 done=0 REWRITE_CNT=4
+[23:45:14] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=10 guard=10 A2_PWB=174 armed=1 have=0 WILD_HP=17 SPECIES=16 MAXHP=17 SLOT=12 done=0 REWRITE_CNT=4
+[23:45:17] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=3 | PWB_ENC=0 clear=10 guard=10 A2_PWB=174 armed=1 have=1 WILD_HP=0 SPECIES=16 MAXHP=17 SLOT=12 done=1 REWRITE_CNT=5
+[23:45:18] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=3 | PWB_ENC=0 clear=10 guard=10 A2_PWB=174 armed=1 have=1 WILD_HP=0 SPECIES=16 MAXHP=17 SLOT=12 done=1 REWRITE_CNT=5
+[23:45:22] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=3 | PWB_ENC=1 clear=10 guard=10 A2_PWB=174 armed=0 have=0 WILD_HP=0 SPECIES=16 MAXHP=17 SLOT=12 done=0 REWRITE_CNT=5
+[23:45:23] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=11 guard=10 A2_PWB=174 armed=1 have=0 WILD_HP=0 SPECIES=16 MAXHP=17 SLOT=12 done=0 REWRITE_CNT=5
+[23:45:32] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=11 guard=10 A2_PWB=181 armed=1 have=0 WILD_HP=0 SPECIES=16 MAXHP=17 SLOT=12 done=0 REWRITE_CNT=5
+[23:45:37] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=11 guard=10 A2_PWB=188 armed=1 have=0 WILD_HP=0 SPECIES=16 MAXHP=17 SLOT=12 done=0 REWRITE_CNT=5
+[23:45:42] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=11 guard=10 A2_PWB=189 armed=1 have=0 WILD_HP=0 SPECIES=16 MAXHP=17 SLOT=12 done=0 REWRITE_CNT=5
+[23:45:46] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=11 guard=12 A2_PWB=189 armed=1 have=0 WILD_HP=0 SPECIES=16 MAXHP=17 SLOT=12 done=0 REWRITE_CNT=5
+[23:45:49] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=3 | PWB_ENC=0 clear=11 guard=12 A2_PWB=189 armed=1 have=1 WILD_HP=0 SPECIES=19 MAXHP=17 SLOT=12 done=1 REWRITE_CNT=6
+[23:45:50] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=3 | PWB_ENC=0 clear=11 guard=12 A2_PWB=189 armed=1 have=1 WILD_HP=0 SPECIES=19 MAXHP=17 SLOT=12 done=1 REWRITE_CNT=6
+[23:45:59] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=3 | PWB_ENC=1 clear=11 guard=12 A2_PWB=189 armed=0 have=0 WILD_HP=0 SPECIES=19 MAXHP=17 SLOT=12 done=0 REWRITE_CNT=6
+[23:46:00] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=12 guard=12 A2_PWB=189 armed=1 have=0 WILD_HP=0 SPECIES=19 MAXHP=17 SLOT=12 done=0 REWRITE_CNT=6
+[23:46:08] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=12 guard=12 A2_PWB=196 armed=1 have=0 WILD_HP=0 SPECIES=19 MAXHP=17 SLOT=12 done=0 REWRITE_CNT=6
+[23:46:15] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=12 guard=12 A2_PWB=203 armed=1 have=0 WILD_HP=0 SPECIES=19 MAXHP=17 SLOT=12 done=0 REWRITE_CNT=6
+[23:46:28] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=12 guard=12 A2_PWB=210 armed=1 have=0 WILD_HP=0 SPECIES=19 MAXHP=17 SLOT=12 done=0 REWRITE_CNT=6
+[23:46:37] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=12 guard=12 A2_PWB=217 armed=1 have=0 WILD_HP=0 SPECIES=19 MAXHP=17 SLOT=12 done=0 REWRITE_CNT=6
+[23:46:45] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=12 guard=12 A2_PWB=224 armed=1 have=0 WILD_HP=0 SPECIES=19 MAXHP=17 SLOT=12 done=0 REWRITE_CNT=6
+[23:46:55] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=12 guard=12 A2_PWB=231 armed=1 have=0 WILD_HP=0 SPECIES=19 MAXHP=17 SLOT=12 done=0 REWRITE_CNT=6
+[23:47:00] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=12 guard=12 A2_PWB=232 armed=1 have=0 WILD_HP=0 SPECIES=19 MAXHP=17 SLOT=12 done=0 REWRITE_CNT=6
+[23:47:04] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=12 guard=14 A2_PWB=232 armed=1 have=0 WILD_HP=0 SPECIES=19 MAXHP=17 SLOT=12 done=0 REWRITE_CNT=6
+[23:47:06] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=12 guard=14 A2_PWB=232 armed=1 have=1 WILD_HP=0 SPECIES=16 MAXHP=16 SLOT=12 done=0 REWRITE_CNT=6
+[23:47:07] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=3 | PWB_ENC=0 clear=12 guard=14 A2_PWB=232 armed=1 have=1 WILD_HP=0 SPECIES=16 MAXHP=16 SLOT=12 done=1 REWRITE_CNT=7
+[23:47:12] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=3 | PWB_ENC=1 clear=12 guard=14 A2_PWB=232 armed=0 have=0 WILD_HP=0 SPECIES=16 MAXHP=16 SLOT=12 done=0 REWRITE_CNT=7
+[23:47:13] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=13 guard=14 A2_PWB=232 armed=1 have=0 WILD_HP=0 SPECIES=16 MAXHP=16 SLOT=12 done=0 REWRITE_CNT=7
+[23:47:21] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=13 guard=14 A2_PWB=234 armed=1 have=0 WILD_HP=0 SPECIES=16 MAXHP=16 SLOT=12 done=0 REWRITE_CNT=7
+[23:47:26] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=0 | PWB_ENC=1 clear=13 guard=14 A2_PWB=234 armed=1 have=0 WILD_HP=0 SPECIES=16 MAXHP=16 SLOT=12 done=0 REWRITE_CNT=7
+[23:47:28] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=0 | PWB_ENC=1 clear=13 guard=14 A2_PWB=234 armed=1 have=1 WILD_HP=18 SPECIES=16 MAXHP=18 SLOT=12 done=0 REWRITE_CNT=7
+[23:47:29] states=[0 1 2 3 4 5 6 7 8 9 10 11 12] result=0 | PWB_ENC=0 clear=13 guard=14 A2_PWB=234 armed=1 have=1 WILD_HP=18 SPECIES=16 MAXHP=18 SLOT=12 done=0 REWRITE_CNT=7
+[23:47:34] states=[0 1 2 3 4 5 6 7 8 9 10 11 12] result=0 | PWB_ENC=0 clear=13 guard=14 A2_PWB=234 armed=1 have=1 WILD_HP=18 SPECIES=16 MAXHP=18 SLOT=12 done=0 REWRITE_CNT=7
+[23:49:31] connected base=0x80e7a000
+[23:49:31] resumed; play into a wild battle, sit at menu
+[23:49:32] states=[] result=0 | PWB_ENC=0 clear=0 guard=0 A2_PWB=0 armed=0 have=0 WILD_HP=0 SPECIES=0 MAXHP=0 SLOT=0 done=0 REWRITE_CNT=0
+[23:51:19] states=[0 1 2] result=0 | PWB_ENC=1 clear=0 guard=0 A2_PWB=0 armed=0 have=0 WILD_HP=0 SPECIES=0 MAXHP=0 SLOT=0 done=0 REWRITE_CNT=0
+[23:51:20] states=[0 1 2 3 4] result=1 | PWB_ENC=1 clear=1 guard=0 A2_PWB=0 armed=1 have=0 WILD_HP=0 SPECIES=0 MAXHP=0 SLOT=0 done=0 REWRITE_CNT=0
+[23:51:28] states=[0 1 2 3 4] result=1 | PWB_ENC=1 clear=1 guard=0 A2_PWB=7 armed=1 have=0 WILD_HP=0 SPECIES=0 MAXHP=0 SLOT=0 done=0 REWRITE_CNT=0
+[23:51:37] states=[0 1 2 3 4] result=1 | PWB_ENC=1 clear=1 guard=0 A2_PWB=8 armed=1 have=0 WILD_HP=0 SPECIES=0 MAXHP=0 SLOT=0 done=0 REWRITE_CNT=0
+[23:51:41] states=[0 1 2 3 4] result=1 | PWB_ENC=1 clear=1 guard=2 A2_PWB=8 armed=1 have=0 WILD_HP=0 SPECIES=0 MAXHP=0 SLOT=0 done=0 REWRITE_CNT=0
+[23:51:44] states=[0 1 2 3 4 5 6 7 8 9 10] result=3 | PWB_ENC=0 clear=1 guard=2 A2_PWB=8 armed=1 have=1 WILD_HP=0 SPECIES=19 MAXHP=15 SLOT=12 done=1 REWRITE_CNT=1
+[23:51:45] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=3 | PWB_ENC=0 clear=1 guard=2 A2_PWB=8 armed=1 have=1 WILD_HP=0 SPECIES=19 MAXHP=15 SLOT=12 done=1 REWRITE_CNT=1
+[23:51:56] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=3 | PWB_ENC=1 clear=1 guard=2 A2_PWB=8 armed=0 have=0 WILD_HP=0 SPECIES=19 MAXHP=15 SLOT=12 done=0 REWRITE_CNT=1
+[23:51:57] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=2 guard=2 A2_PWB=8 armed=1 have=0 WILD_HP=0 SPECIES=19 MAXHP=15 SLOT=12 done=0 REWRITE_CNT=1
+[23:52:05] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=2 guard=2 A2_PWB=15 armed=1 have=0 WILD_HP=0 SPECIES=19 MAXHP=15 SLOT=12 done=0 REWRITE_CNT=1
+[23:52:12] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=2 guard=2 A2_PWB=16 armed=1 have=0 WILD_HP=0 SPECIES=19 MAXHP=15 SLOT=12 done=0 REWRITE_CNT=1
+[23:52:15] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=1 | PWB_ENC=1 clear=2 guard=4 A2_PWB=16 armed=1 have=0 WILD_HP=0 SPECIES=19 MAXHP=15 SLOT=12 done=0 REWRITE_CNT=1
+[23:52:18] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=3 | PWB_ENC=0 clear=2 guard=4 A2_PWB=16 armed=1 have=1 WILD_HP=0 SPECIES=19 MAXHP=15 SLOT=12 done=1 REWRITE_CNT=2
+[23:52:19] states=[0 1 2 3 4 5 6 7 8 9 10 12] result=3 | PWB_ENC=0 clear=2 guard=4 A2_PWB=16 armed=1 have=1 WILD_HP=0 SPECIES=19 MAXHP=15 SLOT=12 done=1 REWRITE_CNT=2

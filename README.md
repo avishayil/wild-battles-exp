@@ -126,9 +126,11 @@ MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS=1 MVK_CONFIG_VK_SEMAPHORE_SUPPORT_STYLE=0 \
   live-verified.
 - **v0.6.0-beta — classic battles + modular builder (done):** the 5-minute wild-battle timer is
   removed; the generator is a hook-module registry with build-time profiles and a build manifest.
-- **Next:** build-time selectable EXP multipliers (100/75/50%); then the open static-encounter
-  gate before a public beta; later an in-battle CATCH action (FireRed-style) and shiny / scripted
-  edge cases.
+- **Next:** validate scripted **Snorlax and legendary** encounter isolation (the open
+  static-encounter gate before a public beta); then the **Catch Variant** double-EXP check. EXP
+  multipliers (75%/50%) are **deferred** pending identification of the actual EXP grant path (see
+  `research/EXP_SEAM_INVESTIGATION.md`); an in-battle CATCH action and shiny/scripted edge cases
+  are future work.
 
 ## Contributing & reproducing
 

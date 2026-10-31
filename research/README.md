@@ -12,6 +12,7 @@ address/offset data (independent interoperability research) — no game code, as
 | [ORIGINAL_FINDINGS.md](ORIGINAL_FINDINGS.md) | First findings & handoff: the reward-path dead end, the predicate (`0x9D8A30`), the amount function's `+0x4A4` null-guard, and why clearing the instant-end flag is the real route. |
 | [EXPERIMENT_LOG.md](EXPERIMENT_LOG.md) | The crash-isolation control matrix (EXP mod × tracer × party/follower × crash), which exonerated the environment and pointed at the addressing bug. |
 | [INVESTIGATION_NOTES.md](INVESTIGATION_NOTES.md) | The post-faint crash (PoC C) investigation: ruling out the condvar theory, pinning the model-joint guard. |
+| [EXP_SEAM_INVESTIGATION.md](EXP_SEAM_INVESTIGATION.md) | Workstream F (EXP multipliers) research checkpoint — the ruled-out candidates, the F1 probe result, and the award-path strategy for resuming. Paused pending the real EXP grant path. Tooling: `tools/probe_exp*.py`, `tools/probe_f1*.py`, fixture `tools/fixtures/f1-trace-20261101.log`. |
 
 See also [`../docs/WBEXP_STATIC_CALLGRAPH.md`](../docs/WBEXP_STATIC_CALLGRAPH.md) — the static
 call-graph analysis of PWB's injection seam (the v0.4.1 encounter-exclusivity question).
