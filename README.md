@@ -9,11 +9,11 @@
 **Defeat a wild Pokémon → earn real experience.**
 Native battle EXP for wild knockouts in *Pokémon: Let's Go, Pikachu!* — entirely through the game's own battle, faint, EXP and evolution code.
 
-[![Release](https://img.shields.io/badge/release-v0.4.1--alpha-e67e22)](https://github.com/avishayil/wild-battles-exp/releases)
+[![Release](https://img.shields.io/badge/release-v0.6.0--beta-e67e22)](https://github.com/avishayil/wild-battles-exp/releases)
 [![License](https://img.shields.io/badge/license-MIT-3498db)](LICENSE.md)
 ![Game](https://img.shields.io/badge/Let's%20Go%20Pikachu-v1.0.2-f1c40f)
 ![Emulator](https://img.shields.io/badge/Eden-MoltenVK-9b59b6)
-![Status](https://img.shields.io/badge/status-experimental%20alpha-e74c3c)
+![Status](https://img.shields.io/badge/status-experimental%20beta-e67e22)
 
 </div>
 
@@ -59,7 +59,7 @@ every change to PWB's own encounters** so it never touches a real battle.
 | Piece | Hook (NSO offset) | Effect |
 |---|---|---|
 | **M** PWB marker | `0x3059B8` | Replays PWB's own per-encounter marker write and sets a `pwb_encounter` flag — true only during a PWB-synthesized wild battle. The identity every other hook keys off. |
-| **A** faint | `0x28BF34` | Clears the legendary "instant-end" flag once the command menu exists **and `pwb_encounter` is set**, so a KO **faints**. |
+| **A** faint | `0x28BF34` | Clears the legendary "instant-end" flag once the command menu exists **and `pwb_encounter` is set**, so a KO **faints**; also zeroes the 5-minute battle timer (v0.6, same gated path). |
 | **C** model guard | `0xA9C650` | Returns "no joint" for a resource-less wild model (prevents a post-faint crash); **gated on `pwb_encounter`**. |
 | **A2** XP | `0x9D8A30` | Forces EXP eligibility **only** for a PWB encounter matching the PWB profile; every other battle runs the game's untouched predicate. |
 | **A3** exit | `0x28BD20` | On a **verified KO** (captured enemy HP == 0), rewrites the battle result so it ends **without** the catch screen (one-shot per encounter). |
@@ -105,25 +105,30 @@ MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS=1 MVK_CONFIG_VK_SEMAPHORE_SUPPORT_STYLE=0 \
 - ✅ **Trainer battles**: fully vanilla — no hook fires.
 - ✅ **Flee / intentional catching** (Catch Variant): the result is left untouched; the marker
   clears on KO, capture and flee with no leak into the next battle.
+- ✅ **Timeout / black-out / save → relaunch** (v0.5): a battle timeout and a party black-out
+  award no false EXP; progress persists across a relaunch and the mod re-arms.
+- ✅ **No 5-minute timer** in ordinary wild battles (v0.6) — the "MATCH TIME" limit is removed for
+  PWB wilds only (verified >5 min with no timeout); genuine static battles keep their countdown.
 - ⛔ **OPEN GATE — real legendary / scripted encounters (e.g. the Route 12/16 Snorlax):** PWB
   reuses that same battle system, so isolation is designed to exclude them, but this has **not
   been tested on a live static encounter yet** (the development save is early-game). Until that
   passes, don't rely on this mod during such a battle.
-- ❓ Full save/reload persistence pass and a PP-consumption recheck are still pending.
+- ❓ A PP-consumption recheck and the Catch-Variant double-EXP measurement remain optional.
 
-**This is alpha software — back up your saves.**
+**This is beta software — back up your saves.**
 
 ## Roadmap
 
-- **v0.4.0 / v0.4.1-alpha — encounter isolation (done):** every behavior-changing hook (A, A2,
-  C) is scoped to PWB's own per-encounter marker; the Catch Variant clears it each battle.
-  Live-verified across KO / capture / flee / trainer.
-- **Validation backlog:** multi-species HP-capture checks, a dedicated save → relaunch
-  persistence pass, a PP-consumption control test.
-- **v0.5.0-beta — release gates:** a scripted Snorlax and a real legendary must stay fully
-  vanilla (capture intact). **Public beta is held until these pass.**
-- **Future:** an in-battle CATCH action (FireRed-style) merging the two variants; shiny /
-  scripted wild-encounter edge cases.
+- **v0.4.x — encounter isolation (done):** every behavior-changing hook is scoped to PWB's own
+  per-encounter marker.
+- **v0.5.0-beta — battle-engine stability (done):** opponent-identity / KO-ownership hardening
+  and a replayable trace-assertion harness; KO/flee/trainer/timeout/black-out/save-reload all
+  live-verified.
+- **v0.6.0-beta — classic battles + modular builder (done):** the 5-minute wild-battle timer is
+  removed; the generator is a hook-module registry with build-time profiles and a build manifest.
+- **Next:** build-time selectable EXP multipliers (100/75/50%); then the open static-encounter
+  gate before a public beta; later an in-battle CATCH action (FireRed-style) and shiny / scripted
+  edge cases.
 
 ## Contributing & reproducing
 
@@ -131,8 +136,11 @@ Everything regenerates byte-for-byte from one source of truth:
 
 ```sh
 python3 -I tools/build_patch.py --text text.bin --pwb pwb1.pchtxt \
-  --out-addon addon.pchtxt --out-unified unified.pchtxt --out-catch-unified catch.pchtxt
+  --out-addon addon.pchtxt --out-unified unified.pchtxt --out-catch-unified catch.pchtxt \
+  --profile classic --manifest build-manifest.json
 ```
+The generator is a hook-module registry; `--profile classic` (default) removes the wild-battle
+timer, `timed` keeps it, and `--manifest` writes a build record (offsets, variants, hashes).
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the development environment, tooling, and the
 build → verify → test loop; AI coding agents should also read [`AGENTS.md`](AGENTS.md).

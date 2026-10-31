@@ -119,3 +119,21 @@ trace-assertion harness, so the ordinary-wild loop is safe enough for a beta.
 - **One pending gate before promotion:** the live scripted-Snorlax / legendary isolation test
   (blocked on a late-game save). PP persistence and the Catch-Variant double-EXP measurement
   remain optional follow-ups. Public beta stays held until the static-encounter test passes.
+
+## v0.6.0-beta — classic battles (no timer) + modular builder
+First "classic battle" release and a maintainability pass on the generator.
+- **No 5-minute timer in ordinary wild battles.** `cave_A` now also zeroes the special-battle
+  300-second limit (`evt+0x562`, which the setup fn `0x28C740` writes alongside the instant-end
+  flag) — on the same `pwb_encounter`-gated path, so a genuine legendary/Snorlax keeps its
+  countdown. **Live-verified:** a wild battle held >5 minutes did not time out (no `result=2`),
+  and the "MATCH TIME" display is gone; a normal KO still works.
+- **Modular patch builder.** `tools/build_patch.py` is refactored into a hook-module registry
+  (each module declares its hook site, cave, variants and scratch usage); the builder lays out
+  caves, runs the capstone + stack-balance + overlap checks, and assembles each variant from the
+  registry. Output is **byte-identical** to the previous builder for the default profile.
+- **Build-time profiles + manifest.** `--profile classic` (default, timer removed) / `timed`
+  (keep the timer); `--manifest build-manifest.json` writes build-id, profile, per-module cave
+  addresses, variant membership, scratch map, and per-output record counts + SHA-256.
+- Differential vs v0.5.0-beta: the only patch-byte change is `cave_A` (the timer-clear).
+- Inherits the deferred gate: the live scripted-Snorlax / legendary isolation test. The timer
+  removal is isolation-safe by construction (PWB-gated) but shares that one pending live check.

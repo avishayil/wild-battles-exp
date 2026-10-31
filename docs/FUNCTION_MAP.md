@@ -30,7 +30,7 @@ at memory offset `M`, the pchtxt record address is **`M + 0x100`**.
 | `[evt+0x68]` | battle-event **state** word (0,1,2,3,4,5,…; 4 = command menu) |
 | `[evt+0x574] & 0x80` | legendary **instant-end** flag. Clear it (after the menu) → the wild Pokémon faints. |
 | `[evt+0x720] → [+0x68] → [+0x508]` | **result chain**. `[+0x508]`: `1` = normal/faint (in battle), `3` = fainted-no-capture (A3 writes this; the game also uses `3` for a flee), `2` = time-up (timeout), `0` = player lost / blackout. (Codes `0`/`2` observed live in v0.5; the A3 gate requires `1`, so both are excluded.) |
-| `[evt+0x562]` | special-battle time limit ("MATCH TIME"). |
+| `[evt+0x562]` | special-battle time limit ("MATCH TIME", `300` = 5 min). Written as a u16 by the special-battle setup fn `0x28C740` (at `0x28C898`, the only `.text` writer). **v0.6:** hook A zeroes it for PWB wild battles (0 = no limit); live-verified >5 min with no timeout. A genuine static battle keeps its countdown (not `pwb_encounter`). |
 
 ## Battle-setup fields (relative to `setup = [x0+0x80]` in the predicate)
 | Offset | Meaning |

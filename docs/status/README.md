@@ -14,3 +14,4 @@ interoperability data; no game code, assets, keys, or personal data appear here.
 | [REVIEWER_STATUS_V040.md](REVIEWER_STATUS_V040.md) | 2026-10-30 | v0.4.0-alpha: per-encounter PWB isolation via hook M; reframed the Snorlax gate. |
 | [REVIEWER_STATUS_V041.md](REVIEWER_STATUS_V041.md) | 2026-10-30 | v0.4.1-alpha: three P0 scoping fixes (A2/C marker-gate, catch cleanup) + static call-graph. |
 | [REVIEWER_STATUS_V050.md](REVIEWER_STATUS_V050.md) | 2026-10-31 | v0.5.0-beta: identity/ownership hardening + trace-assertion harness; KO/flee/trainer/timeout/blackout/save-reload live-verified; Snorlax gate deferred. |
+| [REVIEWER_STATUS_V060.md](REVIEWER_STATUS_V060.md) | 2026-11-01 | v0.6.0-beta: remove the 5-minute wild-battle timer (live-verified >5 min) + modular patch builder with profiles & manifest (byte-identical default). |

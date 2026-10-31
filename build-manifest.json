@@ -1,0 +1,100 @@
+{
+  "nsobid": "C208DB6A4EF4361F28B8402BE0F7CD9A00000000000000000000000000000000",
+  "profile": "classic",
+  "cave_base": "0xd32ba8",
+  "cave_end": "0xd32e54",
+  "modules": {
+    "A": {
+      "hook": "0x28bf34",
+      "cave": "0xd32ba8",
+      "words": 24,
+      "variants": [
+        "addon",
+        "catch",
+        "main"
+      ],
+      "scratch": "clear_cnt +0x34, armed +0xFC; (v0.6) timer evt+0x562"
+    },
+    "C": {
+      "hook": "0xa9c650",
+      "cave": "0xd32c08",
+      "words": 28,
+      "variants": [
+        "addon",
+        "catch",
+        "main"
+      ],
+      "scratch": "c_entry +0xB0, guard_hit +0xD8; gated on pwb_encounter +0xF8"
+    },
+    "ST": {
+      "hook": "0x28bd20",
+      "cave": "0xd32c78",
+      "words": 55,
+      "variants": [
+        "addon",
+        "main"
+      ],
+      "scratch": "state +0x40, mask +0x44, result +0x58, rewrite +0xE0, armed/done/have/evolve +0xFC..FF"
+    },
+    "R": {
+      "hook": "0x9e41d0",
+      "cave": "0xd32d54",
+      "words": 20,
+      "variants": [
+        "addon",
+        "main"
+      ],
+      "scratch": "wild_hp +0xC8, species +0xCC, maxhp +0xD0, slot +0xD4, have +0xFE; gated on +0xF8"
+    },
+    "E": {
+      "hook": "0x319ec4",
+      "cave": "0xd32da4",
+      "words": 13,
+      "variants": [
+        "addon",
+        "catch",
+        "main"
+      ],
+      "scratch": "evolve_pending +0xFF; clears pwb_encounter +0xF8"
+    },
+    "P": {
+      "hook": "0x9d8a30",
+      "cave": "0xd32dd8",
+      "words": 23,
+      "variants": [
+        "addon",
+        "catch",
+        "main"
+      ],
+      "scratch": "a2_cnt +0xE4; gated on pwb_encounter +0xF8"
+    },
+    "M": {
+      "hook": "0x3059b8",
+      "cave": "0xd32e34",
+      "words": 8,
+      "variants": [
+        "addon",
+        "catch",
+        "main"
+      ],
+      "scratch": "sets pwb_encounter +0xF8"
+    }
+  },
+  "outputs": {
+    "addon": {
+      "path": "mods/addon-only (needs base Wild Battles)/Wild Battles EXP Addon/exefs/wbexp_addon.pchtxt",
+      "records": 14,
+      "sha256": "80e833442127caff1ef697c845f6ad74c639e901dcf39b246761b560f300e59a"
+    },
+    "unified": {
+      "path": "mods/Wild Battles EXP/exefs/wild_battles_exp.pchtxt",
+      "records": 37,
+      "sha256": "d3949cd9f30af99de847415756c9c6677cde61afbec300f38d64984ee2ba51c3"
+    },
+    "catch": {
+      "path": "mods/Wild Battles EXP (Catch Variant)/exefs/wild_battles_exp_catch.pchtxt",
+      "records": 33,
+      "sha256": "2a63f60684f3680568e275c4451124291997c0ab8da2dd9ce7f966650dcb5ab9"
+    }
+  }
+}

@@ -68,6 +68,7 @@ def str_w(rt,rn,off): return 0xB9000000|((off//4)<<10)|(rn<<5)|rt
 def ldrb_w(rt,rn,off):return 0x39400000|(off<<10)|(rn<<5)|rt
 def strb_w(rt,rn,off):return 0x39000000|(off<<10)|(rn<<5)|rt
 def ldrh_w(rt,rn,off): return 0x79400000|((off//2)<<10)|(rn<<5)|rt
+def strh_w(rt,rn,off): return 0x79000000|((off//2)<<10)|(rn<<5)|rt
 def addi_w(rd,rn,imm):return 0x11000000|(imm<<10)|(rn<<5)|rd
 def movz_w(rd,i):     return 0x52800000|(i<<5)|rd
 def movz_x(rd,i):     return 0xD2800000|(i<<5)|rd
@@ -102,20 +103,27 @@ def ret_branch(body, base, target):
     return b(base + len(body)*4, target)
 
 # ----- the three code caves (bodies in memory-offset space at CAVE_BASE+) -----
-def cave_A(text, base):   # PoC A v3: clear instant-end flag ONLY for a PWB encounter; set armed
+def cave_A(text, base, timer=True):   # clear instant-end flag ONLY for a PWB encounter; set armed; (v0.6) drop timer
     # x19 = evt ; x1 = handler ctx ([x1+0x60] = command-menu object)
     # pwb_encounter (scratch +0xF8) is set by HOOK_M from PWB's own setup routine, so it is
     # true only for PWB's synthesized battles -> a real legendary/Snorlax is never touched.
+    # v0.6: once the instant-end flag is cleared, also zero evt+0x562 (the special-battle's
+    # 300s "MATCH TIME" limit the setup fn 0x28C740 writes together with the 0x80 flag). 0 = no
+    # limit (recomp sets the same field to 0). Only on the PWB-gated flag-clear path, so a real
+    # legendary/Snorlax keeps its countdown. Live-verified: >5 min with no timeout. `timer`
+    # selects the build-time profile (classic = remove the timer; `timed` keeps it).
     A = lambda i: base+i*4
-    Lskip = A(19)                                              # index of the first restore (LDP_1617)
+    timer_ins = [strh_w(31,19,0x562)] if timer else []          # clear the 300s battle timer (v0.6)
+    Lskip = A(19 + len(timer_ins))                              # index of the first restore (LDP_1617)
     w = [STP_910, STP_1617, ADRP_SCRATCH, ADD_F00,
          ldrb_w(17,16,0xF8), cbz_w(17,A(5),Lskip),              # 4,5  pwb_encounter?
          ldr_x(9,1,0x60),    cbz_x(9,A(7),Lskip),               # 6,7  command menu up?
          ldr_w(17,19,0x574), movz_w(10,0x80), tst_w(17,10), bcond(0,A(11),Lskip),  # 8-11 flag 0x80 set?
-         bic_w(17,17,10), str_w(17,19,0x574),                   # 12,13 clear it
-         ldr_w(17,16,0x34), addi_w(17,17,1), str_w(17,16,0x34), # 14-16 clear_cnt++
-         movz_w(17,1), strb_w(17,16,0xFC),                      # 17,18 armed = 1
-         LDP_1617, LDP_910,                                     # A(19) = Lskip (restores)
+         bic_w(17,17,10), str_w(17,19,0x574),                   # 12,13 clear instant-end flag
+         ] + timer_ins + [                                      # 14   (classic profile) clear timer
+         ldr_w(17,16,0x34), addi_w(17,17,1), str_w(17,16,0x34), # clear_cnt++
+         movz_w(17,1), strb_w(17,16,0xFC),                      # armed = 1
+         LDP_1617, LDP_910,                                     # Lskip = first restore
          disp(text,HOOK_A)]
     return w + [ret_branch(w, base, HOOK_A+4)]
 
@@ -220,173 +228,188 @@ def cave_E(text, base):  # A4: after-battle next-state redirect 4 -> 1 when evol
     # also runs on the skip paths, clearing a stale flag either way (safe: flag wants clearing).
     return w + [ret_branch(w, base, HOOK_E+4)]
 
+# ===== module registry =====================================================================
+# One entry per hook (a hook site + its code cave), in cave-layout order. Bases are assigned
+# consecutively from CAVE_BASE in THIS order for ALL modules regardless of variant, so a
+# variant's caves keep stable addresses (byte-for-byte reproducible). Each module declares the
+# variants that include it and a human note on the scratch slots it touches (the scratch page
+# is a shared blackboard, not per-module private, so this is documentation for the manifest).
+def module_table(profile):
+    timer = (profile != 'timed')   # 'classic' (default) removes the 300s wild-battle timer
+    return [
+        dict(key='A',  hook=HOOK_A,  build=lambda t,b: cave_A(t,b,timer=timer),
+             variants={'addon','main','catch'}, scratch='clear_cnt +0x34, armed +0xFC; (v0.6) timer evt+0x562'),
+        dict(key='C',  hook=HOOK_C,  build=cave_C,  variants={'addon','main','catch'},
+             scratch='c_entry +0xB0, guard_hit +0xD8; gated on pwb_encounter +0xF8'),
+        dict(key='ST', hook=HOOK_ST, build=cave_ST, variants={'addon','main'},
+             scratch='state +0x40, mask +0x44, result +0x58, rewrite +0xE0, armed/done/have/evolve +0xFC..FF'),
+        dict(key='R',  hook=HOOK_R,  build=cave_R,  variants={'addon','main'},
+             scratch='wild_hp +0xC8, species +0xCC, maxhp +0xD0, slot +0xD4, have +0xFE; gated on +0xF8'),
+        dict(key='E',  hook=HOOK_E,  build=cave_E,  variants={'addon','main','catch'},
+             scratch='evolve_pending +0xFF; clears pwb_encounter +0xF8'),
+        dict(key='P',  hook=HOOK_P,  build=cave_P,  variants={'addon','main','catch'},
+             scratch='a2_cnt +0xE4; gated on pwb_encounter +0xF8'),
+        dict(key='M',  hook=HOOK_M,  build=cave_M,  variants={'addon','main','catch'},
+             scratch='sets pwb_encounter +0xF8'),
+    ]
+
+# Per-variant record order, preserved byte-for-byte from the pre-registry builder: the non-M
+# hook redirects, then the cave bodies, then the M redirect LAST (it overlaps PWB's record, so
+# it must be applied after PWB's own bytes).
+VARIANT_ORDER = {
+    'addon': dict(redir=['A','C','ST','P','R','E'], body=['A','C','ST','R','E','P','M']),
+    'main':  dict(redir=['A','C','ST','P','R','E'], body=['A','C','ST','R','E','P','M']),
+    'catch': dict(redir=['A','C','P','E'],          body=['A','C','P','E','M']),
+}
+
+def lay_out(text, profile):
+    """Assign every module a cave base consecutively; build and return {key: info}."""
+    caves, base = {}, CAVE_BASE
+    for m in module_table(profile):
+        w = m['build'](text, base)
+        caves[m['key']] = dict(m, base=base, words=w)
+        base += len(w) * 4
+    assert base <= 0xD33000, "caves overflow .text padding (0xD33000)"
+    return caves
+
+def verify_caves(text, caves):
+    """capstone self-checks per cave: it returns to hook+4, preserves the displaced original,
+    and is stack-balanced on every path (dataflow depth); plus a build-id sanity on P/R/E."""
+    def dis(words, base): return list(MD.disasm(b''.join(struct.pack('<I', x) for x in words), base))
+    for key, c in caves.items():
+        w, base, ret = c['words'], c['base'], c['hook'] + 4
+        ins = dis(w, base)
+        assert ins[-1].mnemonic == 'b' and int(ins[-1].op_str[1:], 16) == ret, (key, 'ret', ins[-1].op_str)
+        assert struct.pack('<I', w[-2]) == struct.pack('<I', disp(text, c['hook'])), (key, 'displaced')
+        idx = {i.address: k for k, i in enumerate(ins)}
+        def delta(i):
+            if i.mnemonic == 'stp' and '#-' in i.op_str and i.op_str.endswith('!'): return 1
+            if i.mnemonic == 'ldp' and '], #' in i.op_str: return -1
+            return 0
+        depth = {ins[0].address: 0}; work = [ins[0].address]
+        lo, hi = base, base + len(w) * 4
+        while work:
+            addr = work.pop(); i = ins[idx[addr]]
+            d_out = depth[addr] + delta(i); succs = []
+            is_uncond_b = (i.mnemonic == 'b')
+            is_branch = i.mnemonic in ('cbz', 'cbnz') or i.mnemonic.startswith('b.') or is_uncond_b
+            if i.mnemonic == 'ret':
+                assert depth[addr] == 0, (key, 'ret unbalanced', hex(addr), depth[addr]); continue
+            if is_branch:
+                tgt = int(i.op_str.split('#')[-1], 16)
+                if lo <= tgt < hi: succs.append(tgt)
+                else: assert d_out == 0, (key, 'cave exit unbalanced', hex(addr), d_out)
+            if not is_uncond_b and idx[addr] + 1 < len(ins): succs.append(ins[idx[addr] + 1].address)
+            for t in succs:
+                if t in depth: assert depth[t] == d_out, (key, 'depth conflict', hex(t), depth[t], d_out)
+                else: depth[t] = d_out; work.append(t)
+    assert disp(text, HOOK_P) == 0xF9404008, "0x9D8A30 not the expected ldr x8,[x0,#0x80]; wrong build?"
+    assert disp(text, HOOK_R) == 0xF81C0FF7, "0x9E41D0 not the expected str x23,[sp,#-0x40]!; wrong build?"
+    assert disp(text, HOOK_E) == 0xB9006A68, "0x319EC4 not the expected str w8,[x19,#0x68]; wrong build?"
+
+def variant_records(variant, caves):
+    """(mem, bytes) records for a variant, in the exact order the pre-registry builder used."""
+    order = VARIANT_ORDER[variant]
+    recs = [(caves[k]['hook'], struct.pack('<I', b(caves[k]['hook'], caves[k]['base']))) for k in order['redir']]
+    recs += [(caves[k]['base'], b''.join(struct.pack('<I', x) for x in caves[k]['words'])) for k in order['body']]
+    m = caves['M']
+    recs.append((m['hook'], struct.pack('<I', b(m['hook'], m['base']))))  # M redirect applied last
+    return recs
+
+def load_pwb(path):
+    out = []
+    for ln in Path(path).read_text().splitlines():
+        ln = ln.strip()
+        if ln and not ln.startswith('@') and not ln.startswith('//'):
+            addr, hx = ln.split(None, 1)
+            out.append((int(addr, 16) - PCHTXT_OFF, bytes.fromhex(hx.strip())))  # store as mem offset
+    return out
+
+def overlap_check(label, merged):
+    """Pairwise record overlap (in pchtxt space). The one intentional overlap is HOOK_M's
+    redirect sitting inside PWB's 32-byte 0x305AB0 record; everything else must be disjoint."""
+    rngs = [(m + PCHTXT_OFF, m + PCHTXT_OFF + len(d)) for m, d in merged]
+    INTENTIONAL = {HOOK_M + PCHTXT_OFF}
+    for i in range(len(rngs)):
+        for j in range(i + 1, len(rngs)):
+            if rngs[i][0] < rngs[j][1] and rngs[j][0] < rngs[i][1]:
+                if max(rngs[i][0], rngs[j][0]) in INTENTIONAL: continue
+                raise SystemExit("OVERLAP (%s) records %d/%d" % (label, i, j))
+
+def emit(records, path, header_comment):
+    lines = [f"@nsobid-{NSOBID}", ""] + header_comment + ["@enabled"]
+    for mem, data in records:
+        lines.append("%08X %s" % (mem + PCHTXT_OFF, data.hex().upper()))
+    lines.append("@stop")
+    Path(path).write_text("\n".join(lines) + "\n")
+
+def write_manifest(path, profile, caves, outputs):
+    import json, hashlib
+    man = dict(
+        nsobid=NSOBID, profile=profile, cave_base=hex(CAVE_BASE),
+        cave_end=hex(max(c['base'] + len(c['words']) * 4 for c in caves.values())),
+        modules={k: dict(hook=hex(c['hook']), cave=hex(c['base']), words=len(c['words']),
+                         variants=sorted(c['variants']), scratch=c['scratch'])
+                 for k, c in caves.items()},
+        outputs={})
+    for name, (p, recs) in outputs.items():
+        man['outputs'][name] = dict(path=p, records=len(recs),
+                                    sha256=hashlib.sha256(Path(p).read_bytes()).hexdigest())
+    Path(path).write_text(json.dumps(man, indent=2) + "\n")
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--text', required=True)
-    ap.add_argument('--pwb', help='base Wild Battles pwb1.pchtxt (for --out-unified)')
+    ap.add_argument('--pwb', help='base Wild Battles pwb1.pchtxt (for --out-unified/--out-catch-unified)')
     ap.add_argument('--out-addon', required=True)
     ap.add_argument('--out-unified')
     ap.add_argument('--out-catch-unified', help='unified CATCH variant: XP but keep the post-KO catch screen (no A3)')
+    ap.add_argument('--profile', default='classic', choices=['classic', 'timed'],
+                    help="classic (default): remove the 300s wild-battle timer; timed: keep it")
+    ap.add_argument('--manifest', help='also write a build manifest (JSON) to this path')
     a = ap.parse_args()
     text = Path(a.text).read_bytes()
 
-    # lay the three caves out consecutively in the .text padding
-    cA = CAVE_BASE;            wA = cave_A(text, cA)
-    cC = cA + len(wA)*4;       wC = cave_C(text, cC)
-    cS = cC + len(wC)*4;       wS = cave_ST(text, cS)
-    cR = cS + len(wS)*4;       wR = cave_R(text, cR)
-    cE = cR + len(wR)*4;       wE = cave_E(text, cE)
-    cP = cE + len(wE)*4;       wP = cave_P(text, cP)
-    cM = cP + len(wP)*4;       wM = cave_M(text, cM)
-    end = cM + len(wM)*4
-    assert end <= 0xD33000, "caves overflow .text padding (0xD33000)"
+    caves = lay_out(text, a.profile)
+    verify_caves(text, caves)
+    outputs = {}
 
-    # verify every cave: returns land correctly, displaced originals preserved
-    def dis(words, base): return list(MD.disasm(b''.join(struct.pack('<I',x) for x in words), base))
-    for name, w, base, ret, dorig in [
-        ('A', wA, cA, HOOK_A+4,  disp(text,HOOK_A)),
-        ('C', wC, cC, HOOK_C+4,  disp(text,HOOK_C)),
-        ('ST',wS, cS, HOOK_ST+4, disp(text,HOOK_ST)),
-        ('R', wR, cR, HOOK_R+4,  disp(text,HOOK_R)),
-        ('E', wE, cE, HOOK_E+4,  disp(text,HOOK_E)),
-        ('P', wP, cP, HOOK_P+4,  disp(text,HOOK_P)),
-        ('M', wM, cM, HOOK_M+4,  disp(text,HOOK_M))]:
-        ins = dis(w, base)
-        assert ins[-1].mnemonic=='b' and int(ins[-1].op_str[1:],16)==ret, (name,'ret',ins[-1].op_str)
-        assert struct.pack('<I',w[-2])==struct.pack('<I',dorig), (name,'displaced')
-        # STACK-BALANCE dataflow: propagate push/pop depth along fall-through and branch
-        # edges; ret and the final external b end a path and must be at depth 0.
-        idx = {i.address: k for k, i in enumerate(ins)}
-        def delta(i):
-            if i.mnemonic=='stp' and '#-' in i.op_str and i.op_str.endswith('!'): return 1
-            if i.mnemonic=='ldp' and '], #' in i.op_str: return -1
-            return 0
-        depth = {ins[0].address: 0}
-        work = [ins[0].address]
-        cave_lo, cave_hi = base, base+len(w)*4
-        while work:
-            addr = work.pop()
-            i = ins[idx[addr]]
-            d_out = depth[addr] + delta(i)
-            succs = []
-            is_uncond_b = (i.mnemonic=='b')
-            is_branch = i.mnemonic in ('cbz','cbnz') or i.mnemonic.startswith('b.') or is_uncond_b
-            if i.mnemonic=='ret':
-                assert depth[addr]==0, (name,'ret with unbalanced stack',hex(addr),depth[addr])
-                continue
-            if is_branch:
-                tgt = int(i.op_str.split('#')[-1],16)
-                if cave_lo <= tgt < cave_hi:
-                    succs.append(tgt)
-                else:
-                    assert d_out==0, (name,'cave exit with unbalanced stack',hex(addr),d_out)
-            if not is_uncond_b and idx[addr]+1 < len(ins):
-                succs.append(ins[idx[addr]+1].address)
-            for t in succs:
-                if t in depth:
-                    assert depth[t]==d_out, (name,'depth conflict',hex(t),depth[t],d_out)
-                else:
-                    depth[t]=d_out; work.append(t)
-    assert disp(text,HOOK_P)==0xF9404008, "0x9D8A30 is not the expected ldr x8,[x0,#0x80]; wrong build?"
-    assert disp(text,HOOK_R)==0xF81C0FF7, "0x9E41D0 is not the expected str x23,[sp,#-0x40]!; wrong build?"
-    assert disp(text,HOOK_E)==0xB9006A68, "0x319EC4 is not the expected str w8,[x19,#0x68]; wrong build?"
-    # HOOK_M lives inside PWB's injected routine (only present once PWB's records are applied);
-    # its displaced word is PWB's own marker write str w9,[x20,#0x298].
-    assert b(HOOK_M, cM)  # (sanity; the displaced word is asserted by replaying it in cave_M)
-
-    # hooks: each site branches to its cave (bytes are PC-relative, placed at mem+0x100)
-    recs = [(HOOK_A, struct.pack('<I', b(HOOK_A, cA))),
-            (HOOK_C, struct.pack('<I', b(HOOK_C, cC))),
-            (HOOK_ST,struct.pack('<I', b(HOOK_ST, cS))),
-            (HOOK_P, struct.pack('<I', b(HOOK_P, cP))),
-            (HOOK_R, struct.pack('<I', b(HOOK_R, cR))),
-            (HOOK_E, struct.pack('<I', b(HOOK_E, cE))),
-            (cA, b''.join(struct.pack('<I',x) for x in wA)),
-            (cC, b''.join(struct.pack('<I',x) for x in wC)),
-            (cS, b''.join(struct.pack('<I',x) for x in wS)),
-            (cR, b''.join(struct.pack('<I',x) for x in wR)),
-            (cE, b''.join(struct.pack('<I',x) for x in wE)),
-            (cP, b''.join(struct.pack('<I',x) for x in wP)),
-            (cM, b''.join(struct.pack('<I',x) for x in wM)),
-            (HOOK_M, struct.pack('<I', b(HOOK_M, cM)))]   # redirect PWB's marker write -> cave_M
-
-    def emit(records, path, header_comment):
-        lines = [f"@nsobid-{NSOBID}", ""] + header_comment + ["@enabled"]
-        for mem, data in records:
-            lines.append("%08X %s" % (mem + PCHTXT_OFF, data.hex().upper()))
-        lines.append("@stop")
-        Path(path).write_text("\n".join(lines) + "\n")
-
-    emit(recs, a.out_addon,
+    addon = variant_records('addon', caves)
+    emit(addon, a.out_addon,
          ["// Wild Battles EXP - ADD-ON (requires base Wild Battles mod also enabled).",
           "// pchtxt addr = memory offset + 0x100."])
     print("wrote", a.out_addon)
+    outputs['addon'] = (a.out_addon, addon)
 
     if a.out_unified:
         assert a.pwb, "--pwb required for --out-unified"
-        pwb_recs = []
-        for ln in Path(a.pwb).read_text().splitlines():
-            ln = ln.strip()
-            if ln and not ln.startswith('@') and not ln.startswith('//'):
-                addr, hx = ln.split(None,1)
-                pwb_recs.append((int(addr,16)-PCHTXT_OFF, bytes.fromhex(hx.strip())))  # store as mem
-        merged = pwb_recs + recs
-        # pairwise overlap check (in pchtxt space)
-        rngs = [(m+PCHTXT_OFF, m+PCHTXT_OFF+len(d)) for m,d in merged]
-        INTENTIONAL = {HOOK_M+PCHTXT_OFF}  # HOOK_M redirect (pchtxt 0x305AB8) inside PWB's 0x305AB0/32B record
-        for i in range(len(rngs)):
-            for j in range(i+1, len(rngs)):
-                if rngs[i][0] < rngs[j][1] and rngs[j][0] < rngs[i][1]:
-                    a_lo = max(rngs[i][0], rngs[j][0])
-                    if a_lo in INTENTIONAL:
-                        continue
-                    raise SystemExit("OVERLAP (unified) records %d/%d" % (i,j))
+        merged = load_pwb(a.pwb) + variant_records('main', caves)
+        overlap_check('unified', merged)
         emit(merged, a.out_unified,
              ["// Wild Battles EXP (UNIFIED) - base Wild Battles + native wild-KO EXP in ONE mod.",
               "// Load this alone; do NOT also enable the separate 'Wild Battles' mod.",
               "// pchtxt addr = memory offset + 0x100."])
         print("wrote", a.out_unified, "(%d records, overlap-checked)" % len(merged))
+        outputs['unified'] = (a.out_unified, merged)
 
     if a.out_catch_unified:
         assert a.pwb, "--pwb required for --out-catch-unified"
-        # Catch variant: faint + crash-guard + native XP, but NO result rewrite -> the
-        # vanilla post-KO catch screen stays, so players can still catch what they battle.
-        # NOTE (v0.4.1): the catch variant includes hook E purely to CLEAR pwb_encounter (+0xF8)
-        # after each battle — without it the marker, set by hook M, would persist into the next
-        # (possibly non-PWB) battle. cave_E's A4 state-redirect stays inert here: evolve_pending
-        # (+0xFF) is only ever set by cave_ST's verified-KO rewrite, which this variant omits.
-        catch_recs = [(HOOK_A, struct.pack('<I', b(HOOK_A, cA))),
-                      (HOOK_C, struct.pack('<I', b(HOOK_C, cC))),
-                      (HOOK_P, struct.pack('<I', b(HOOK_P, cP))),
-                      (HOOK_E, struct.pack('<I', b(HOOK_E, cE))),
-                      (cA, b''.join(struct.pack('<I',x) for x in wA)),
-                      (cC, b''.join(struct.pack('<I',x) for x in wC)),
-                      (cP, b''.join(struct.pack('<I',x) for x in wP)),
-                      (cE, b''.join(struct.pack('<I',x) for x in wE)),
-                      (cM, b''.join(struct.pack('<I',x) for x in wM)),
-                      (HOOK_M, struct.pack('<I', b(HOOK_M, cM)))]
-        pwb_recs2 = []
-        for ln in Path(a.pwb).read_text().splitlines():
-            ln = ln.strip()
-            if ln and not ln.startswith('@') and not ln.startswith('//'):
-                addr, hx = ln.split(None,1)
-                pwb_recs2.append((int(addr,16)-PCHTXT_OFF, bytes.fromhex(hx.strip())))
-        merged2 = pwb_recs2 + catch_recs
-        rngs = [(m+PCHTXT_OFF, m+PCHTXT_OFF+len(d)) for m,d in merged2]
-        INTENTIONAL = {HOOK_M+PCHTXT_OFF}  # HOOK_M redirect (pchtxt 0x305AB8) inside PWB's 0x305AB0/32B record
-        for i in range(len(rngs)):
-            for j in range(i+1, len(rngs)):
-                if rngs[i][0] < rngs[j][1] and rngs[j][0] < rngs[i][1]:
-                    a_lo = max(rngs[i][0], rngs[j][0])
-                    if a_lo in INTENTIONAL:
-                        continue
-                    raise SystemExit("OVERLAP (catch) records %d/%d" % (i,j))
+        # Catch variant: faint + crash-guard + native XP, but NO result rewrite -> the vanilla
+        # post-KO catch screen stays. It includes hook E purely to clear pwb_encounter after each
+        # battle (cave_E's A4 redirect stays inert: evolve_pending is only set by cave_ST, omitted here).
+        merged2 = load_pwb(a.pwb) + variant_records('catch', caves)
+        overlap_check('catch', merged2)
         emit(merged2, a.out_catch_unified,
              ["// Wild Battles EXP - CATCH VARIANT (unified). Battle -> KO -> native EXP ->",
               "// the normal catch screen (you can still catch what you battled).",
               "// Mutually exclusive with the main unified mod: enable only ONE of them.",
               "// pchtxt addr = memory offset + 0x100."])
         print("wrote", a.out_catch_unified, "(%d records, overlap-checked)" % len(merged2))
+        outputs['catch'] = (a.out_catch_unified, merged2)
+
+    if a.manifest:
+        write_manifest(a.manifest, a.profile, caves, outputs)
+        print("wrote", a.manifest)
 
 if __name__ == '__main__':
     main()

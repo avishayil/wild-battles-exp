@@ -32,11 +32,18 @@ cave").
 
 ## Tools in this repo
 
-- **`tools/build_patch.py`** — the single source of truth. Regenerates **all** `.pchtxt`
-  artifacts byte-for-byte from `text.bin` + the base PWB pchtxt, and self-verifies every cave
-  (capstone disassembly of return branches + displaced originals, a dataflow **stack-balance**
-  check, and a pairwise **overlap** check). A non-zero exit means the build is rejected — never
-  ship past it. **Never hand-edit the generated `.pchtxt` files; change the generator.**
+- **`tools/build_patch.py`** — the single source of truth. A **hook-module registry** (each
+  module declares its hook site, cave, variants and scratch usage) that regenerates **all**
+  `.pchtxt` artifacts byte-for-byte from `text.bin` + the base PWB pchtxt, and self-verifies
+  every cave (capstone disassembly of return branches + displaced originals, a dataflow
+  **stack-balance** check, and a pairwise **overlap** check). A non-zero exit means the build is
+  rejected — never ship past it. **Never hand-edit the generated `.pchtxt` files; change the
+  generator.** Flags: `--profile classic` (default; removes the wild-battle timer) / `timed`
+  (keeps it); `--manifest <path>` writes a JSON build record (build-id, profile, per-module cave
+  offsets, variant membership, scratch map, output record counts + SHA-256).
+- **`tools/trace_assert.py`** — replays a `scratchread` trace and asserts the runtime invariants
+  (marker set→cleared per encounter; hooks only fire inside a PWB encounter; KO rewrites exactly
+  once; non-KO endings never rewrite). A known-good trace lives in `tools/fixtures/`.
 - **`tools/scratchread.py`** — connects to the emulator GDB stub (port `6543`) and prints the
   mod's scratch-page instrumentation (hook counters, `pwb_encounter`, captured wild HP, …) as
   it changes. Memory reads only.
