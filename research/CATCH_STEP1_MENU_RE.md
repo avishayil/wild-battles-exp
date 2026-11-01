@@ -142,12 +142,30 @@ The owner declined the RUN-repurpose UX (it would remove the ability to flee a P
 chose to **keep the existing Catch Variant** as the "battle-then-catch" answer. v0.7 Integrated Catch
 is therefore **not being built**; this document stands as the completed static-feasibility record.
 
-**Offline id↔label narrowing (no emulator):** the main four buttons' event id is produced via the
-frame-indexed table (recomp `table[view+8]`), not constant stubs; only ids 5 and 6 have constant
-writer stubs (`0xab49d0`→5, `0xab4a20`→6), and the id==6 path diverts at `0xab1e38` into a
-battle-object interaction consistent with FIGHT/move-select. recomp's Eevee map (1 fight / 2 pokémon /
-3 bag / 4 run / 7 back), with event-id 4 → action 4 = RUN, is the **working hypothesis**; it is not
-proven for 1.0.2 and was **not** confirmed live, because the feature is shelved. If ever revived, the
-only way to pin the map is a throwaway instrumentation build (cave at `0xab1e34` copies `w20`/action
-to scratch per press) read back over the stub — a register can't be read without a breakpoint, which
-is banned on this build.
+**Offline id↔label narrowing:** the main four buttons' event id is produced via the frame-indexed
+table (recomp `table[view+8]`), not constant stubs; only ids 5 and 6 have constant writer stubs
+(`0xab49d0`→5, `0xab4a20`→6), and the id==6 path diverts at `0xab1e38` into a battle-object
+interaction consistent with FIGHT/move-select.
+
+**Live confirmation (2026-11-01, PK 1.0.2 on Eden `de7e6e01d4-master`).** A throwaway
+instrumentation patch (`tools/probe_menu.py`: cave at `0xab1e34` copies `w20` → scratch `+0x04`,
+press counter `+0x00`) was deployed standalone over base PWB1 and the chosen-button id was read back
+over the stub during a real wild battle:
+
+| press (counter) | on-screen button | captured event id |
+|---|---|---|
+| #4 (last press) | **Run** | **4** |
+| #3 | Pokémon/Bag | 3 |
+| #2 | Bag/Pokémon | 2 |
+| #1 | Fight | (ticked past the sampler; = 1 by elimination) |
+
+**RUN = event id 4 → action 4, confirmed** — exactly the disassembly's prediction. This also proves
+the detection mechanism end-to-end on hardware: the cave captured the id for genuine presses into
+scratch and it read back live. The 2↔3 (Bag/Pokémon) labels depend on the exact press order and are
+not individually pinned, but they are irrelevant to the (shelved) feature, which only needed RUN.
+
+Capture method note (this build): a register can't be read without a breakpoint (banned), so the
+patch copies the id to scratch; and the guest halts at every battle-scene stop, so the sampler had to
+continuously `$c` while reading scratch at each stop (`tools/pump_and_read.py`) — a one-off throwaway,
+not the read-only observer. Confirms the reviewer's read that live observation on this build needs
+continuous continue-servicing.
