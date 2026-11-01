@@ -1,0 +1,8 @@
+# SYNTHETIC negative fixture (hand-written, not a real capture).
+# A PWB encounter opens and the battle-event state keeps advancing but the episode NEVER
+# resolves or terminates — the marker is still set when the trace ends. Permissive run: OK
+# (episode counted "open"). Strict run: FAIL (S1 — a completed regression trace must terminate).
+[00:00:00] connected base=0x80000000
+[00:00:01] states=[] result=0 | PWB_ENC=0 clear=0 guard=0 A2_PWB=0 armed=0 have=0 WILD_HP=0 SPECIES=0 MAXHP=0 SLOT=0 done=0 REWRITE_CNT=0
+[00:00:02] states=[0 1] result=0 | PWB_ENC=1 clear=0 guard=0 A2_PWB=0 armed=0 have=0 WILD_HP=0 SPECIES=0 MAXHP=0 SLOT=0 done=0 REWRITE_CNT=0
+[00:00:03] states=[0 1 2 3 4] result=1 | PWB_ENC=1 clear=1 guard=1 A2_PWB=1 armed=1 have=0 WILD_HP=0 SPECIES=0 MAXHP=0 SLOT=0 done=0 REWRITE_CNT=0

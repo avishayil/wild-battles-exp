@@ -1,6 +1,7 @@
 {
   "nsobid": "C208DB6A4EF4361F28B8402BE0F7CD9A00000000000000000000000000000000",
   "profile": "classic",
+  "hp_gate": "slot6",
   "cave_base": "0xd32ba8",
   "cave_end": "0xd32e54",
   "modules": {

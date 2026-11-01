@@ -36,14 +36,27 @@ cave").
   module declares its hook site, cave, variants and scratch usage) that regenerates **all**
   `.pchtxt` artifacts byte-for-byte from `text.bin` + the base PWB pchtxt, and self-verifies
   every cave (capstone disassembly of return branches + displaced originals, a dataflow
-  **stack-balance** check, and a pairwise **overlap** check). A non-zero exit means the build is
-  rejected — never ship past it. **Never hand-edit the generated `.pchtxt` files; change the
-  generator.** Flags: `--profile classic` (default; removes the wild-battle timer) / `timed`
-  (keeps it); `--manifest <path>` writes a JSON build record (build-id, profile, per-module cave
-  offsets, variant membership, scratch map, output record counts + SHA-256).
+  **stack-balance** check, a pairwise **overlap** check, an all-hook-site **preimage** check
+  (`text.bin` holds the exact instruction each hook displaces — wrong NSO fails loudly), a
+  **cave-padding** check (the cave region is zero padding), explicit branch range/alignment
+  assertions, and a **PWB-marker** check before the one intentional overlap is allowed). A
+  non-zero exit means the build is rejected — never ship past it. **Never hand-edit the generated
+  `.pchtxt` files; change the generator.** Flags: `--profile classic` (default; removes the
+  wild-battle timer) / `timed` (keeps it); `--hp-gate slot6` (default; shipped v0.6 A3 gate,
+  byte-identical) / `strict` (also require slot==12 and max_hp>0 — Finding B, ship-gated on live
+  verification); `--manifest <path>` writes a JSON build record (build-id, profile, hp-gate,
+  per-module cave offsets, variant membership, scratch map, output record counts + SHA-256);
+  `--verify-manifest <path>` asserts each output's SHA-256 matches a committed manifest.
 - **`tools/trace_assert.py`** — replays a `scratchread` trace and asserts the runtime invariants
   (marker set→cleared per encounter; hooks only fire inside a PWB encounter; KO rewrites exactly
-  once; non-KO endings never rewrite). A known-good trace lives in `tools/fixtures/`.
+  once; non-KO endings never rewrite). `--strict` adds complete-session checks for a *finished*
+  regression trace (no open episode at session end; the rewrite coincides with the KO decision;
+  identity recorded) — fail-closed, vs the permissive default for truncated debug traces. A real
+  known-good trace and synthetic **negative** fixtures live under `tools/fixtures/`.
+- **`tests/`** — offline, game-file-free checks run by CI (`.github/workflows/ci.yml`):
+  `test_encoders.py` (AArch64 encoders + branch range), `test_trace_assert.py` (every fixture's
+  expected verdict in both modes), `lint_mods.py` (pchtxt syntax + `build-manifest.json` hash
+  integrity of the committed `mods/`). Run them with `python3 -I tests/<file>`.
 - **`tools/scratchread.py`** — connects to the emulator GDB stub (port `6543`) and prints the
   mod's scratch-page instrumentation (hook counters, `pwb_encounter`, captured wild HP, …) as
   it changes. Memory reads only.
@@ -60,7 +73,8 @@ python3 -I tools/build_patch.py \
   --out-addon         "mods/addon-only (needs base Wild Battles)/Wild Battles EXP Addon/exefs/wbexp_addon.pchtxt" \
   --out-unified       "mods/Wild Battles EXP/exefs/wild_battles_exp.pchtxt" \
   --out-catch-unified "mods/Wild Battles EXP (Catch Variant)/exefs/wild_battles_exp_catch.pchtxt"
-# exit 0 = capstone + stack-balance + overlap all passed
+# exit 0 = capstone + stack-balance + overlap + preimage + cave-padding + PWB-marker all passed
+# (add --manifest build-manifest.json --verify-manifest build-manifest.json to also check hashes)
 
 # 2. Deploy to the emulator's mod folder for this title, e.g. Eden:
 #    ~/.local/share/eden/load/010003F003A34000/Wild Battles EXP/exefs/

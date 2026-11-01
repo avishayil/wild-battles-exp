@@ -1,0 +1,8 @@
+# SYNTHETIC negative fixture (hand-written, not a real capture).
+# A KO episode resolves (done=1, result=3) but pwb_encounter is NEVER cleared — the marker
+# leaks past the battle. Permissive run: OK (episode counted "open"). Strict run: FAIL (S1).
+[00:00:00] connected base=0x80000000
+[00:00:01] states=[] result=0 | PWB_ENC=0 clear=0 guard=0 A2_PWB=0 armed=0 have=0 WILD_HP=0 SPECIES=0 MAXHP=0 SLOT=0 done=0 REWRITE_CNT=0
+[00:00:02] states=[0 1 2 3 4] result=1 | PWB_ENC=1 clear=1 guard=1 A2_PWB=1 armed=1 have=0 WILD_HP=0 SPECIES=0 MAXHP=0 SLOT=0 done=0 REWRITE_CNT=0
+[00:00:03] states=[0 1 2 3 4 5] result=3 | PWB_ENC=1 clear=1 guard=1 A2_PWB=1 armed=1 have=1 WILD_HP=0 SPECIES=16 MAXHP=22 SLOT=12 done=1 REWRITE_CNT=1
+[00:00:04] states=[0 1 2 3 4 5 6] result=3 | PWB_ENC=1 clear=1 guard=1 A2_PWB=1 armed=1 have=1 WILD_HP=0 SPECIES=16 MAXHP=22 SLOT=12 done=1 REWRITE_CNT=1
