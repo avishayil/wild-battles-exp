@@ -29,7 +29,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # -I drops the script dir
 from e2e_autoplay import (Stub, resolve_base, read_state, SCRATCH_OFF, APP,
                           A_BTN, B_BTN, UP, DOWN, LEFT, RIGHT,
-                          tap, focus_eden, quit_eden, accessibility_ok, frontmost)
+                          tap, focus_eden, quit_eden, accessibility_ok, frontmost, _osa)
+
+def key_down(key): _osa(f'tell application "System Events" to key down "{key}"')
+def key_up(key):   _osa(f'tell application "System Events" to key up "{key}"')
 
 def _read_stop(st, timeout):
     """Read one packet within `timeout`s; None on timeout (== guest still running free)."""
@@ -51,6 +54,15 @@ def pump_advance(st, run_window):
         st.s.sendall(b'\x03')                   # interrupt (a signal, NOT a breakpoint)
         _read_stop(st, 2.0)
 
+def pump_tap(st, key, run_window, hold=0.09):
+    """Precondition: stopped. Resume, then do a clean down->up tap WHILE the guest runs (so it
+    sees a fresh press AND release edge — a release done while stopped leaves the button 'stuck'
+    down and the next press registers nothing), then stop. Postcondition: stopped."""
+    st.s.sendall(b'$c#63')
+    key_down(key); time.sleep(hold); key_up(key)   # full edge inside the run-window
+    if _read_stop(st, run_window) is None:
+        st.s.sendall(b'\x03'); _read_stop(st, 2.0)
+
 def pump_tick(st, sb, run_window):
     """pump_advance, then sample the scratch at the resulting stop."""
     pump_advance(st, run_window)
@@ -61,8 +73,10 @@ def main():
     ap.add_argument('--species', type=int, default=5, help='distinct KO species target')
     ap.add_argument('--max-seconds', type=int, default=1200)
     ap.add_argument('--max-encounters', type=int, default=30)
-    ap.add_argument('--tick-seconds', type=float, default=0.7, help='guest run-window per pump tick')
-    ap.add_argument('--battle-taps', type=int, default=1, help='A-taps queued per battle tick')
+    ap.add_argument('--tick-seconds', type=float, default=0.7, help='overworld guest run-window per pump tick')
+    ap.add_argument('--battle-window', type=float, default=0.6,
+                    help='in-battle: seconds to HOLD A while the guest runs each tick (short, '
+                         'since wild Pokemon KO in ~1 move — sample often so we don\'t overshoot)')
     ap.add_argument('--walk-nudge', action='store_true', help='tap a direction in the overworld')
     ap.add_argument('--quit-when-done', action='store_true')
     ap.add_argument('--dry-run', action='store_true', help='send NO keystrokes; pump+read+plan only')
@@ -77,6 +91,8 @@ def main():
     def _close():
         if not closed['v']:
             closed['v'] = True
+            try: key_up(A_BTN)                              # never leave A stuck down
+            except Exception: pass
             try: st.s.sendall(b'$c#63'); time.sleep(0.2)   # leave the guest RUNNING
             except Exception: pass
             try: st.s.close()
@@ -126,13 +142,18 @@ def _run(st, a):
         in_battle = (last_pe == 1)
         if not a.dry_run and not frontmost().lower().startswith(APP):
             focus_eden()
-        if in_battle:
-            for _ in range(max(1, a.battle_taps)):
-                tap(a.dry_run, A_BTN)
-        elif a.walk_nudge:
-            tap(a.dry_run, walk_cycle[encounters % len(walk_cycle)])
-
-        s = pump_tick(st, sb, a.tick_seconds)
+        if in_battle and not a.dry_run:
+            # clean A tap (down->up) inside the run-window: the guest sees a fresh press+release
+            # edge each tick, advancing Fight -> move -> attack -> victory text -> EXP -> end.
+            try:
+                pump_tap(st, A_BTN, a.battle_window)
+            finally:
+                key_up(A_BTN)                 # belt-and-suspenders: never leave A stuck
+            s = read_state(st, sb)
+        else:
+            if a.walk_nudge and not a.dry_run:
+                tap(a.dry_run, walk_cycle[encounters % len(walk_cycle)])
+            s = pump_tick(st, sb, a.tick_seconds)
         if s is None:
             continue
 
