@@ -23,7 +23,7 @@ title. The pump drives it from boot onward - you do NOT need to reach gameplay f
 
 Usage: python3 -I tools/e2e_autoplay_pump.py --species 5 --quit-when-done
 """
-import argparse, signal, socket, struct, sys, time
+import argparse, signal, socket, struct, subprocess, sys, time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # -I drops the script dir
@@ -35,25 +35,21 @@ def key_down(key): _osa(f'tell application "System Events" to key down "{key}"')
 def key_up(key):   _osa(f'tell application "System Events" to key up "{key}"')
 
 def confirm_quit_eden():
-    """Quit Eden and dismiss its Qt 'do you really want to quit?' dialog. `tell app to quit`
-    BLOCKS on that dialog, so trigger quit via Ctrl+Q (Eden's Exit shortcut) then click Yes/OK
-    (fall back to Return = default button)."""
-    focus_eden()
-    _osa('tell application "System Events" to keystroke "q" using control down')  # Ctrl+Q = Exit
-    time.sleep(1.2)
-    script = ('tell application "System Events" to tell process "eden"\n'
-              '  repeat with w in windows\n'
-              '    repeat with b in buttons of w\n'
-              '      if name of b is in {"Yes", "OK", "&Yes", "Quit"} then\n'
-              '        click b\n'
-              '        return "clicked"\n'
-              '      end if\n'
-              '    end repeat\n'
-              '  end repeat\n'
-              'end tell')
-    r = _osa(script)
-    if 'clicked' not in (getattr(r, 'stdout', '') or ''):
-        _osa('tell application "System Events" to key code 36')   # Return = default button
+    """Force-quit Eden by killing the process. Its Qt 'do you really want to quit?' dialog can't be
+    dismissed by automation on this build (Yes/No are invisible to macOS accessibility and the dialog
+    ignores synthetic Tab/arrow/Space keys), so a graceful quit can't be confirmed. Killing is safe
+    for the save FILE here: we only reach this from the overworld (never mid-save), and test EXP
+    gains are intentionally not persisted."""
+    killed = False
+    for cmd in (['pkill', '-x', 'eden'], ['pkill', '-f', 'eden.app']):
+        try:
+            if subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                              timeout=5).returncode == 0:
+                killed = True
+                break
+        except Exception:
+            pass
+    print("    eden force-quit" if killed else "    eden kill found no process (already closed?)")
 
 def _read_stop(st, timeout):
     """Read one packet within `timeout`s; None on timeout (== guest still running free)."""
@@ -102,10 +98,6 @@ def main():
                     help='roam the overworld to trigger spawns: HOLD a direction (left stick = WASD) '
                          'each tick, alternating up/down to stay in the grass patch')
     ap.add_argument('--walk-window', type=float, default=0.8, help='seconds to hold a walk direction')
-    ap.add_argument('--boot-nav-taps', type=int, default=0,
-                    help='at startup, pump + tap A this many times to clear the controller-select, '
-                         'title, and save-load screens into the overworld (0 = assume the owner '
-                         'already navigated to the overworld). Harmless if it over-taps in-world.')
     ap.add_argument('--quit-when-done', action='store_true')
     ap.add_argument('--dry-run', action='store_true', help='send NO keystrokes; pump+read+plan only')
     a = ap.parse_args()
@@ -158,20 +150,7 @@ def _run(st, a):
             print("ACCESSIBILITY not granted — keystrokes will no-op. Grant it, then rerun."); sys.exit(3)
         print("focusing eden…", "ok" if focus_eden() else "WARN not frontmost", flush=True)
 
-    # boot-menu nav: pump + tap A to clear controller-select / title / save-load into the overworld
-    if not a.dry_run and a.boot_nav_taps > 0:
-        print(f"navigating boot menus ({a.boot_nav_taps} A-taps)…", flush=True)
-        for _ in range(a.boot_nav_taps):
-            if not frontmost().lower().startswith(APP):
-                focus_eden()
-            try:
-                pump_tap(st, A_BTN, a.battle_window)
-            except (ConnectionResetError, ConnectionError, BrokenPipeError, OSError, socket.timeout) as e:
-                print(f"nav: stub connection lost ({e})", flush=True); break
-            finally:
-                key_up(A_BTN)
-        print("boot nav done; entering main loop", flush=True)
-
+    print("entering main loop: A-tap through boot menus, then auto-battle + roam", flush=True)
     t0 = time.time()
     elapsed = lambda: time.time() - t0
     ko = {}
@@ -194,8 +173,19 @@ def _run(st, a):
                 finally:
                     key_up(A_BTN)             # belt-and-suspenders: never leave A stuck
                 s = read_state(st, sb)
+            elif encounters == 0 and not a.dry_run:
+                # pre-first-battle: A-tap to click through controller-select / title / save-load
+                # into the overworld, then keep A-tapping while standing (a spawn walks into the
+                # stationary player) until the FIRST encounter. NEVER move here — up/down at the
+                # save-select screen would change which save loads.
+                try:
+                    pump_tap(st, A_BTN, a.battle_window)
+                finally:
+                    key_up(A_BTN)
+                s = read_state(st, sb)
             elif a.walk_nudge and not a.dry_run:
-                # roam: HOLD a direction across the run-window so the player actually walks
+                # roam ONLY after the first encounter (now confirmed in-game): HOLD a direction so
+                # the player walks the grass to trigger subsequent spawns faster.
                 d = walk_seq[walk_i % len(walk_seq)]; walk_i += 1
                 key_down(d)
                 try:
