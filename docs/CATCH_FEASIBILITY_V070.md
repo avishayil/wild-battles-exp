@@ -169,13 +169,12 @@ odds*, which is the expensive stateful part.
 
 ## 6. Recommended first prototype (if/when pursued) + pass/fail
 Smallest safe experiment, **read-mostly**, to decide go/no-go before building the feature:
-1. **RE the command menu in 1.0.2** (offline + one live read): confirm the state-4 command-menu
-   object (`[x1+0x60]` at `0x28BF34`), locate the 1.0.2 equivalents of `CMD_VIEWS`/`CMD_DECIDE`/
-   `BUTTON_FIND` and the per-button action word, and determine whether a cave hook can observe
-   "which button was chosen" and set a scratch flag. **Pass:** we can set a scratch flag iff a
-   specific command button is selected, with zero false positives across Fight/Bag/Pokémon/Run.
-   **Fail:** menu dispatch isn't reachable/observable from a static hook → the feature is not
-   static-feasible; stop.
+1. **RE the command menu in 1.0.2** (offline) — **DONE, PASS: see `research/CATCH_STEP1_MENU_RE.md`.**
+   `CMD_DECIDE` = `0xab1dd0`; chosen-button id in `w20` at `0xab1e34`; 7-way switch (jump table
+   `0xf9823c`) → per-id action at `[x21+0x10]`; the `pwb_encounter` scratch gate (`+0xF8`) is
+   reachable from a cave. A static hook **can** set a scratch flag iff a specific button is pressed
+   in a PWB wild battle, zero false positives. Caveat that reshapes step 2: a *new* 5th button is not
+   static-feasible, so the slice must repurpose RUN. One live id↔label read remains before wiring.
 2. **Result-gate prototype** (only if step 1 passes): on a *normal* RUN, flip `[+0x508] 3→1` gated
    on the step-1 flag and let the capture run. **Pass:** choosing the gated action ends the battle
    and the native capture screen opens on the wild mon at a sane state, while an un-gated RUN still
@@ -187,9 +186,13 @@ No prototype touches a real trainer/legendary battle; all on a disposable early-
 reads-only; v0.6 stays the deployed build.
 
 ## 7. Explicit unresolved questions
-1. **Menu observability (the crux):** can a static cave hook on the 1.0.2 command-menu dispatch
-   reliably detect a specific button press and set scratch, without the runtime view/hash machinery
-   recomp uses? Unknown — needs the step-1 RE.
+1. **Menu observability (the crux): RESOLVED — see `research/CATCH_STEP1_MENU_RE.md`.** Yes: the
+   chosen-button id is in `w20` at `0xab1e34` (event+4) and the per-id action at `[x21+0x10]`, and
+   the PWB gate (`pwb_encounter` scratch `+0xF8`) is reachable from a cave trampolined off the uikit
+   `CMD_DECIDE` — so a static hook can set a scratch flag iff a specific button is pressed in a PWB
+   wild battle, zero false positives. **But** a *distinct 5th CATCH button* is NOT static-feasible
+   (needs per-allocation runtime view/callback wiring); a static slice must repurpose an existing
+   button (RUN), which is a UX decision for the owner. One live id↔label confirmation remains.
 2. **1.0.2 offsets:** all capture/menu functions in §2's second table need instruction-matched
    1.0.2 addresses (recomp only has 1.0.0).
 3. **Native HP at capture:** does the static-win→capture use current battle HP without recomp's
