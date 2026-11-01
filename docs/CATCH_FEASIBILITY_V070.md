@@ -206,6 +206,12 @@ reads-only; v0.6 stays the deployed build.
 
 ---
 
+## Owner decision (2026-11-01): SHELVED — keep the Catch Variant
+Step-1 RE (`research/CATCH_STEP1_MENU_RE.md`) confirmed a 5th button is not static-feasible and that
+the only static path was repurposing RUN. The owner declined that UX (losing flee in PWB wild
+battles) and chose to keep the shipped **Catch Variant**. v0.7 Integrated Catch is **not being
+built**; this report and the step-1 note stand as the completed feasibility record.
+
 ## Verdict
 Reproducing recomp's in-battle CATCH **as a static `.pchtxt` is not feasible in full** — it is a
 stateful native-runtime feature (menu wiring, HP-preserving re-battle, FP catch-rate scaling) plus

@@ -134,7 +134,20 @@ not a technical blocker, and it is the step-2 entry condition.
 Detecting which command button was pressed, scoped to PWB wild battles, with zero false positives, is
 **static-feasible** — the signal (`w20` at `0xab1e34`, or the action at `[x21+0x10]`) and the gate
 (`pwb_encounter` scratch `+0xF8`, reachable from the cave) are both confirmed in 1.0.2. A **distinct
-5th CATCH button is not** static-feasible. So v0.7 Integrated Catch, if pursued statically, is a
-**RUN-repurpose** feature, not a new button — pending the owner's UX decision and the one live
-id↔label confirmation above. Until then, the shipped **Catch Variant** remains the "battle-then-catch"
-answer.
+5th CATCH button is not** static-feasible. So v0.7 Integrated Catch, if pursued statically, could only
+be a **RUN-repurpose** feature, not a new button.
+
+## 7. Owner decision (2026-11-01): v0.7 Integrated Catch SHELVED
+The owner declined the RUN-repurpose UX (it would remove the ability to flee a PWB wild battle) and
+chose to **keep the existing Catch Variant** as the "battle-then-catch" answer. v0.7 Integrated Catch
+is therefore **not being built**; this document stands as the completed static-feasibility record.
+
+**Offline id↔label narrowing (no emulator):** the main four buttons' event id is produced via the
+frame-indexed table (recomp `table[view+8]`), not constant stubs; only ids 5 and 6 have constant
+writer stubs (`0xab49d0`→5, `0xab4a20`→6), and the id==6 path diverts at `0xab1e38` into a
+battle-object interaction consistent with FIGHT/move-select. recomp's Eevee map (1 fight / 2 pokémon /
+3 bag / 4 run / 7 back), with event-id 4 → action 4 = RUN, is the **working hypothesis**; it is not
+proven for 1.0.2 and was **not** confirmed live, because the feature is shelved. If ever revived, the
+only way to pin the map is a throwaway instrumentation build (cave at `0xab1e34` copies `w20`/action
+to scratch per press) read back over the stub — a register can't be read without a breakpoint, which
+is banned on this build.
