@@ -1,8 +1,7 @@
 <div align="center">
 
-<!-- Banner slot: drop an ORIGINAL logo/banner at docs/assets/banner.png.
-     Do NOT commit copyrighted Nintendo / Game Freak / Pokémon artwork — see docs/assets/README.md. -->
-<img src="docs/assets/banner.png" alt="Wild Battles EXP" width="620">
+<!-- Original banner (abstract art; no copyrighted game imagery). Source: docs/assets/banner.svg -->
+<img src="docs/assets/banner.png" alt="Wild Battles EXP — fight wild Pokémon, earn real EXP" width="760">
 
 # Wild Battles EXP
 
@@ -19,9 +18,11 @@ Native battle EXP for wild knockouts in *Pokémon: Let's Go, Pikachu!* — entir
 
 > ⚖️ **Unofficial, non-commercial fan project — not affiliated with, endorsed, or sponsored by
 > Nintendo, Game Freak, Creatures Inc., or The Pokémon Company.** All game trademarks and
-> copyrights belong to their respective owners. **No game code, assets, ROMs, or keys are
-> distributed** — only original tooling and address-based patch descriptions; a legally owned
-> copy of the game is required. Read the full [legal notice](DISCLAIMER.md) before using this mod.
+> copyrights belong to their respective owners. **No game code, ROMs, or keys are distributed** —
+> only original tooling and address-based patch descriptions; a legally owned copy of the game is
+> required. The gameplay screenshots/recording below are self-captured, shown only to demonstrate
+> the mod (© their rights holders; not under this repo's license). Read the full
+> [legal notice](DISCLAIMER.md) before using this mod.
 
 ---
 
@@ -40,6 +41,7 @@ Developed and verified on **Eden** (macOS, Apple Silicon / MoltenVK).
 
 ## Contents
 
+- [Gameplay gallery](#gameplay-gallery)
 - [What it does](#what-it-does)
 - [How it works](#how-it-works)
 - [Install](#install)
@@ -48,6 +50,55 @@ Developed and verified on **Eden** (macOS, Apple Silicon / MoltenVK).
 - [Contributing & reproducing](#contributing--reproducing)
 - [Repository layout](#repository-layout)
 - [Legal](#legal) · [Credits](#credits)
+
+## Gameplay gallery
+
+> **Wild Battles EXP in action:** fight wild Pokémon with traditional turn-based battles, earn
+> native experience when they faint, level up and evolve naturally, and return directly to
+> exploration. *(This is the main **auto-exit** variant; the Catch Variant keeps the catch screen.)*
+
+<div align="center">
+
+![A wild battle end-to-end: attack, the wild Pokémon faints, your party earns real EXP, then straight back to the overworld](docs/media/gameplay-demo.gif)
+
+*One continuous wild battle: attack → the wild Pokémon faints → your party earns real EXP → straight back to exploration, no catch screen.*
+
+</div>
+
+### Traditional wild battles · real EXP
+
+<table>
+<tr>
+<td width="50%"><img src="docs/media/screenshots/01-wild-battle.webp" alt="Turn-based wild battle against a Rattata with the Fight menu"><br><sub><b>Traditional wild battles</b> — turn-based, with the familiar Fight / Pokémon / Bag / Run menu.</sub></td>
+<td width="50%"><img src="docs/media/screenshots/03-native-exp.webp" alt="Pikachu gains 14 real experience points after defeating a wild Pokémon"><br><sub><b>Real EXP from a wild KO</b> — actual amounts, awarded by the game's own code.</sub></td>
+</tr>
+</table>
+
+### Battle → knockout → native EXP → evolution → exploration
+
+<table>
+<tr>
+<td width="33%"><img src="docs/media/screenshots/02-wild-faint.webp" alt="A wild Pokémon fainting after a knockout"><br><sub>Wild Pokémon <b>faint</b> naturally.</sub></td>
+<td width="33%"><img src="docs/media/screenshots/04-evolution.webp" alt="A Caterpie evolving after a level-up"><br><sub>Level-ups from wild EXP trigger <b>native evolution</b>.</sub></td>
+<td width="33%"><img src="docs/media/screenshots/05-overworld.webp" alt="Returning to the overworld after a wild knockout"><br><sub>Back to <b>exploring</b> after a KO — no forced catch screen.</sub></td>
+</tr>
+</table>
+
+<sub>The evolution shot is from a separate progression test, not necessarily the same encounter — not every knockout triggers an evolution.</sub>
+
+<details>
+<summary><b>More gameplay</b></summary>
+
+<p align="center"><img src="docs/media/screenshots/06-pidgey-battle.webp" alt="A wild Pidgey battle showing both HP bars and the full command menu" width="640"></p>
+
+<sub>Another species — a wild Pidgey battle with both HP bars and the full command menu visible.</sub>
+
+</details>
+
+> All gameplay images and the recording above were **self-captured by the maintainer** from a
+> legally-owned copy, solely to demonstrate this mod. Game visuals and characters are © Nintendo /
+> Game Freak / Creatures Inc. / The Pokémon Company and are **not** covered by this repo's MIT
+> license. See [`DISCLAIMER.md`](DISCLAIMER.md).
 
 ## What it does
 
@@ -156,6 +207,7 @@ reproduction in [`docs/REPRODUCE.md`](docs/REPRODUCE.md), and the reasoning trai
 mods/        the installable mods — main unified · catch variant · add-on
 tools/       build_patch.py (regenerates every patch) + gdbstub reader + packaging
 docs/        ENGINEERING_LOG · REPRODUCE · FUNCTION_MAP · WBEXP_STATIC_CALLGRAPH · status/
+docs/media/  gameplay screenshots + demo GIF (+ how they were made); docs/assets/ holds the banner
 research/    raw experiment log, investigation notes, original findings, hook research
 CONTRIBUTING.md · AGENTS.md · CLAUDE.md   dev + AI-agent guides
 CHANGELOG.md · CREDITS.md · DISCLAIMER.md · LICENSE.md
