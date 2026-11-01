@@ -71,3 +71,35 @@ read-only observer. **Reads only: never software breakpoints, and the reader nev
   `qXfer:libraries`, per-species logging + verdict; `--no-resume` (attach to a running game),
   clean-exit on any signal. `--input keystroke` can mash A via `osascript` (needs Eden
   frontmost + Accessibility) but is optional — the owner playing the battles works the same.
+
+## Autonomous harness (pump-driven) — `tools/e2e_autoplay_pump.py`
+The read-only observer **freezes** on this build: the guest halts at every battle-scene stop
+(boot, encounter, menu, turn) and needs `$c` servicing. `e2e_autoplay_pump.py` is a throwaway
+capture that continuously pumps `$c` (so the guest never freezes) and samples the EXP scratch at
+each stop, while driving input via `osascript` — a fully autonomous wild-battle player:
+- boot: the base-resolve loop pumps past "launching…"; `--boot-nav-taps N` A-taps through
+  controller-select + title + save-load into the overworld.
+- roam: `--walk-nudge` HOLDS WASD (the left-stick mapping) across a run-window, cycling all 4
+  directions, to walk the grass and trigger spawns (an instantaneous tap never lands because the
+  guest is stopped most of the time — input must be *held/tapped across* a `$c` run-window).
+- battle: a clean A down→up each tick (`pump_tap`) advances Fight → move → KO → EXP → end.
+- records per-encounter `slot/species/maxhp/result/rw` (species is only valid after the KO
+  reflect at `state 8`; the post-transition read captures it) and prints the strict-gate verdict;
+  `--quit-when-done` Ctrl+Q's and auto-clicks the "quit?" dialog's Yes.
+- Prereqs: Accessibility granted to the app running it, Eden frontmost, GDB stub on.
+- NOT read-only (it sends `$c` by design); a one-off research capture, not shipped.
+
+### Strict-gate live-accept evidence (2026-11-01, Eden `de7e6e01d4-master`)
+Gathered autonomously by the harness (and the earlier read runs) on the **current** build —
+previously we only had the older-build v0.5 fixture. Across runs, every wild KO had **`slot==12`
+and `maxhp>0`** (`result=3`, the wild-KO-no-capture path; `rw` incrementing = A3 rewrite firing):
+
+| species (natdex) | slot | maxhp | verdict |
+|---|---|---|---|
+| 13 Weedle | 12 | 15 | OK |
+| 16 Pidgey | 12 | 15/17 | OK |
+| 19 Rattata | 12 | 15 | OK |
+| 43 Oddish | 12 | 15/16 | OK |
+
+4 distinct species, `slot==12` on every KO → the live-accept the reviewer parked strict-gate
+promotion on is now satisfied on this build. (Promotion remains the owner's call.)
