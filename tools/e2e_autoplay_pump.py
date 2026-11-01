@@ -40,8 +40,10 @@ def confirm_quit_eden():
     ignores synthetic Tab/arrow/Space keys), so a graceful quit can't be confirmed. Killing is safe
     for the save FILE here: we only reach this from the overworld (never mid-save), and test EXP
     gains are intentionally not persisted."""
+    # SIGKILL (-9), not the default SIGTERM: Eden traps SIGTERM and runs its graceful-close path,
+    # which pops the very quit-confirm dialog we can't dismiss. SIGKILL is uncatchable -> no dialog.
     killed = False
-    for cmd in (['pkill', '-x', 'eden'], ['pkill', '-f', 'eden.app']):
+    for cmd in (['pkill', '-9', '-x', 'eden'], ['pkill', '-9', '-f', 'eden.app']):
         try:
             if subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                               timeout=5).returncode == 0:
