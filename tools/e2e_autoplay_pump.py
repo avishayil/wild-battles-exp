@@ -34,6 +34,27 @@ from e2e_autoplay import (Stub, resolve_base, read_state, SCRATCH_OFF, APP,
 def key_down(key): _osa(f'tell application "System Events" to key down "{key}"')
 def key_up(key):   _osa(f'tell application "System Events" to key up "{key}"')
 
+def confirm_quit_eden():
+    """Quit Eden and dismiss its Qt 'do you really want to quit?' dialog. `tell app to quit`
+    BLOCKS on that dialog, so trigger quit via Ctrl+Q (Eden's Exit shortcut) then click Yes/OK
+    (fall back to Return = default button)."""
+    focus_eden()
+    _osa('tell application "System Events" to keystroke "q" using control down')  # Ctrl+Q = Exit
+    time.sleep(1.2)
+    script = ('tell application "System Events" to tell process "eden"\n'
+              '  repeat with w in windows\n'
+              '    repeat with b in buttons of w\n'
+              '      if name of b is in {"Yes", "OK", "&Yes", "Quit"} then\n'
+              '        click b\n'
+              '        return "clicked"\n'
+              '      end if\n'
+              '    end repeat\n'
+              '  end repeat\n'
+              'end tell')
+    r = _osa(script)
+    if 'clicked' not in (getattr(r, 'stdout', '') or ''):
+        _osa('tell application "System Events" to key code 36')   # Return = default button
+
 def _read_stop(st, timeout):
     """Read one packet within `timeout`s; None on timeout (== guest still running free)."""
     try:
@@ -77,7 +98,14 @@ def main():
     ap.add_argument('--battle-window', type=float, default=0.6,
                     help='in-battle: seconds to HOLD A while the guest runs each tick (short, '
                          'since wild Pokemon KO in ~1 move — sample often so we don\'t overshoot)')
-    ap.add_argument('--walk-nudge', action='store_true', help='tap a direction in the overworld')
+    ap.add_argument('--walk-nudge', action='store_true',
+                    help='roam the overworld to trigger spawns: HOLD a direction (left stick = WASD) '
+                         'each tick, alternating up/down to stay in the grass patch')
+    ap.add_argument('--walk-window', type=float, default=0.8, help='seconds to hold a walk direction')
+    ap.add_argument('--boot-nav-taps', type=int, default=0,
+                    help='at startup, pump + tap A this many times to clear the controller-select, '
+                         'title, and save-load screens into the overworld (0 = assume the owner '
+                         'already navigated to the overworld). Harmless if it over-taps in-world.')
     ap.add_argument('--quit-when-done', action='store_true')
     ap.add_argument('--dry-run', action='store_true', help='send NO keystrokes; pump+read+plan only')
     a = ap.parse_args()
@@ -91,8 +119,9 @@ def main():
     def _close():
         if not closed['v']:
             closed['v'] = True
-            try: key_up(A_BTN)                              # never leave A stuck down
-            except Exception: pass
+            for _k in (A_BTN, UP, DOWN, LEFT, RIGHT):      # never leave a key stuck down
+                try: key_up(_k)
+                except Exception: pass
             try: st.s.sendall(b'$c#63'); time.sleep(0.2)   # leave the guest RUNNING
             except Exception: pass
             try: st.s.close()
@@ -129,31 +158,56 @@ def _run(st, a):
             print("ACCESSIBILITY not granted — keystrokes will no-op. Grant it, then rerun."); sys.exit(3)
         print("focusing eden…", "ok" if focus_eden() else "WARN not frontmost", flush=True)
 
+    # boot-menu nav: pump + tap A to clear controller-select / title / save-load into the overworld
+    if not a.dry_run and a.boot_nav_taps > 0:
+        print(f"navigating boot menus ({a.boot_nav_taps} A-taps)…", flush=True)
+        for _ in range(a.boot_nav_taps):
+            if not frontmost().lower().startswith(APP):
+                focus_eden()
+            try:
+                pump_tap(st, A_BTN, a.battle_window)
+            except (ConnectionResetError, ConnectionError, BrokenPipeError, OSError, socket.timeout) as e:
+                print(f"nav: stub connection lost ({e})", flush=True); break
+            finally:
+                key_up(A_BTN)
+        print("boot nav done; entering main loop", flush=True)
+
     t0 = time.time()
     elapsed = lambda: time.time() - t0
     ko = {}
     encounters = 0
     last_pe = 0
-    walk_cycle = [RIGHT, LEFT, UP, DOWN]
     last_log = 0
+    walk_seq = [UP, DOWN, LEFT, RIGHT]   # roam the grass patch in all directions to find spawns
+    walk_i = 0
 
     while len(ko) < a.species and encounters < a.max_encounters and elapsed() < a.max_seconds:
-        # queue input for THIS tick's run-window, then advance+sample
         in_battle = (last_pe == 1)
         if not a.dry_run and not frontmost().lower().startswith(APP):
             focus_eden()
-        if in_battle and not a.dry_run:
-            # clean A tap (down->up) inside the run-window: the guest sees a fresh press+release
-            # edge each tick, advancing Fight -> move -> attack -> victory text -> EXP -> end.
-            try:
-                pump_tap(st, A_BTN, a.battle_window)
-            finally:
-                key_up(A_BTN)                 # belt-and-suspenders: never leave A stuck
-            s = read_state(st, sb)
-        else:
-            if a.walk_nudge and not a.dry_run:
-                tap(a.dry_run, walk_cycle[encounters % len(walk_cycle)])
-            s = pump_tick(st, sb, a.tick_seconds)
+        try:
+            if in_battle and not a.dry_run:
+                # clean A tap (down->up) inside the run-window: the guest sees a fresh press+release
+                # edge each tick, advancing Fight -> move -> attack -> victory text -> EXP -> end.
+                try:
+                    pump_tap(st, A_BTN, a.battle_window)
+                finally:
+                    key_up(A_BTN)             # belt-and-suspenders: never leave A stuck
+                s = read_state(st, sb)
+            elif a.walk_nudge and not a.dry_run:
+                # roam: HOLD a direction across the run-window so the player actually walks
+                d = walk_seq[walk_i % len(walk_seq)]; walk_i += 1
+                key_down(d)
+                try:
+                    pump_advance(st, a.walk_window)
+                finally:
+                    key_up(d)
+                s = read_state(st, sb)
+            else:
+                s = pump_tick(st, sb, a.tick_seconds)
+        except (ConnectionResetError, ConnectionError, BrokenPipeError, OSError, socket.timeout) as e:
+            print(f"[{int(elapsed())}s] stub connection lost ({e}); stopping with partial data", flush=True)
+            break
         if s is None:
             continue
 
@@ -165,11 +219,13 @@ def _run(st, a):
         if s['pe'] == 1:                                   # in a PWB battle
             if last_pe == 0:
                 encounters += 1
-                print(f"[{int(elapsed())}s] >>> encounter #{encounters} (species={s['species']})", flush=True)
+                print(f"[{int(elapsed())}s] >>> encounter #{encounters}", flush=True)
             last_pe = 1
             continue
 
         if last_pe == 1:                                   # battle just ended -> record
+            # species/maxhp are only valid AFTER the KO reflect (state 8); this post-transition read
+            # catches that fresh value (it persists until the NEXT battle's KO, so no race here).
             sp = s['species']
             if sp:
                 ko.setdefault(sp, dict(slot=s['slot'], maxhp=s['maxhp'], rewrote=s['rw'],
@@ -193,7 +249,12 @@ def _run(st, a):
     if a.quit_when_done:
         s = pump_tick(st, sb, a.tick_seconds)
         if s and s['pe'] == 0:
-            print("overworld — quitting eden gracefully"); quit_eden(a.dry_run)
+            print("overworld — quitting eden (Ctrl+Q + confirm Yes)")
+            try:
+                confirm_quit_eden() if not a.dry_run else print("    [dry] would quit eden")
+            except Exception as e:
+                print(f"quit attempted but osascript didn't confirm ({e}); "
+                      f"press Yes manually if Eden is still open", flush=True)
         else:
             print("NOT quitting: not safely at overworld")
 
