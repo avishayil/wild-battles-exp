@@ -239,7 +239,7 @@ def _run(st, a):
     if a.quit_when_done:
         s = pump_tick(st, sb, a.tick_seconds)
         if s and s['pe'] == 0:
-            print("overworld — quitting eden (Ctrl+Q + confirm Yes)")
+            print("overworld — force-quitting eden")
             try:
                 confirm_quit_eden() if not a.dry_run else print("    [dry] would quit eden")
             except Exception as e:
