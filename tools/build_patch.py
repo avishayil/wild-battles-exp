@@ -59,6 +59,30 @@ HOOK_R    = 0x9E41D0   # BTL_POKEPARAM reflect fn entry: str x23,[sp,#-0x40]! (w
 HOOK_E    = 0x319EC4   # after-battle processor (entry 0x319A60): str w8,[x19,#0x68] next-state write
 CAVE_BASE = 0xD32BA8   # start of the loader-provided .text page padding (zero-filled, RX)
 SCRATCH   = 0x1EE0F00  # safe .bss-tail scratch page (module+0x1EE0F00..0x1EE1000)
+CAVE_END_PAGE = 0xD33000  # the .text padding page ends here; caves must stay below it
+
+# Expected original instruction word at each hook site. verify_preimages() asserts text.bin
+# matches these before any records are emitted, so building against the wrong NSO fails loudly
+# instead of landing a hook on an unexpected instruction. (HOOK_M's word is the UNPATCHED game
+# instruction; PWB's own record overwrites it with the marker store — see verify_pwb_marker.)
+PREIMAGE = {
+    HOOK_A:  0xF9403034,  # ldr x20,[x1,#0x60]
+    HOOK_C:  0xD101C3FF,  # sub sp,sp,#0x70
+    HOOK_ST: 0xD101C3FF,  # sub sp,sp,#0x70
+    HOOK_P:  0xF9404008,  # ldr x8,[x0,#0x80]
+    HOOK_R:  0xF81C0FF7,  # str x23,[sp,#-0x40]!
+    HOOK_E:  0xB9006A68,  # str w8,[x19,#0x68]
+    HOOK_M:  0xD63F0100,  # blr x8  (unpatched; PWB overwrites it with its marker store)
+}
+
+def _chk_rel(cur, t, imm_bits):
+    """Assert a branch displacement is 4-aligned and fits the signed immN*4 range; return it.
+    imm_bits=26 for b (±128 MB), 19 for cbz/cbnz/b.cond (±1 MB). Does not alter the encoding."""
+    d = t - cur
+    assert d % 4 == 0, ("branch misaligned", hex(cur), hex(t), d)
+    lo, hi = -(1 << (imm_bits + 1)), (1 << (imm_bits + 1)) - 4
+    assert lo <= d <= hi, ("branch out of range", hex(cur), hex(t), d, "imm%d" % imm_bits)
+    return d
 
 # ----- AArch64 encoders (all operate in memory-offset space) -----
 def ldr_x(rt,rn,off): assert off%8==0; return 0xF9400000|((off//8)<<10)|(rn<<5)|rt
@@ -77,12 +101,12 @@ def orr_w(rd,rn,rm):  return 0x2A000000|(rm<<16)|(rn<<5)|rd
 def cmp_i(rn,imm):    return 0x71000000|(imm<<10)|(rn<<5)|31
 def tst_w(rn,rm):     return 0x6A000000|(rm<<16)|(rn<<5)|31
 def bic_w(rd,rn,rm):  return 0x0A200000|(rm<<16)|(rn<<5)|rd
-def cbz_x(rt,cur,t):  return 0xB4000000|(((t-cur)>>2 &0x7FFFF)<<5)|rt
-def cbnz_x(rt,cur,t): return 0xB5000000|(((t-cur)>>2 &0x7FFFF)<<5)|rt
-def cbz_w(rt,cur,t):  return 0x34000000|(((t-cur)>>2 &0x7FFFF)<<5)|rt
-def cbnz_w(rt,cur,t): return 0x35000000|(((t-cur)>>2 &0x7FFFF)<<5)|rt
-def bcond(c,cur,t):   return 0x54000000|(((t-cur)>>2 &0x7FFFF)<<5)|c
-def b(cur,t):         return 0x14000000|(((t-cur)>>2)&0x3FFFFFF)
+def cbz_x(rt,cur,t):  _chk_rel(cur,t,19); return 0xB4000000|(((t-cur)>>2 &0x7FFFF)<<5)|rt
+def cbnz_x(rt,cur,t): _chk_rel(cur,t,19); return 0xB5000000|(((t-cur)>>2 &0x7FFFF)<<5)|rt
+def cbz_w(rt,cur,t):  _chk_rel(cur,t,19); return 0x34000000|(((t-cur)>>2 &0x7FFFF)<<5)|rt
+def cbnz_w(rt,cur,t): _chk_rel(cur,t,19); return 0x35000000|(((t-cur)>>2 &0x7FFFF)<<5)|rt
+def bcond(c,cur,t):   _chk_rel(cur,t,19); return 0x54000000|(((t-cur)>>2 &0x7FFFF)<<5)|c
+def b(cur,t):         _chk_rel(cur,t,26); return 0x14000000|(((t-cur)>>2)&0x3FFFFFF)
 NE, HI = 1, 8
 RET = 0xD65F03C0
 STP_1617, LDP_1617 = 0xA9BF47F0, 0xA8C147F0    # stp/ldp x16,x17,[sp,#-0x10]!/[sp],#0x10
@@ -144,9 +168,18 @@ def cave_C(text, base):   # PoC C v2: model-joint guard (recomp port), gated on 
             movz_x(0,0), RET,                                       # 23,24 no-joint
             LDP_1617, disp(text,HOOK_C), b(A(27),HOOK_C+4)]         # 25=Lrest restore, 26=Lorig, 27 return
 
-def cave_ST(text, base):  # entry hook: reset flags@state0; result 1->3 @state5 on VERIFIED KO (one-shot)
+def cave_ST(text, base, strict_gate=False):  # entry hook: reset flags@state0; result 1->3 @state5 on VERIFIED KO (one-shot)
+    # strict_gate (Finding B, OPT-IN — default build is byte-identical to v0.6): before the
+    # rewrite, additionally require the captured opponent to be the wild slot (slot==12) with a
+    # real max HP (>0), rejecting an unusual extra participant that overwrote the HP capture.
+    # Default (slot6) keeps the shipped v0.6 gate; promote to default only after a live
+    # multi-species confirmation that slot==12/max_hp>0 always hold (see docs/V061_SAFETY_PLAN.md).
     A = lambda i: base+i*4
-    Lnot0, Lchain, Ldone = A(8), A(15), A(48)
+    extra = 5 if strict_gate else 0
+    Lnot0, Lchain, Ldone = A(8), A(15), A(48 + extra)
+    strict_block = ([ldrb_w(9,16,0xD4), cmp_i(9,12), bcond(NE,A(42),Ldone),   # 40-42 slot == 12
+                     ldr_w(9,16,0xD0), cbz_w(9,A(44),Ldone)]                   # 43,44 max HP > 0
+                    if strict_gate else [])
     w = [STP_910, STP_1617, ADRP_SCRATCH, ADD_F00, ldr_w(17,0,0x68), str_w(17,16,0x40),
          cbnz_w(17,A(6),Lnot0), str_w(31,16,0xFC),     # state==0: zero armed/done/have (u32 @+0xFC)
          cmp_i(17,31), bcond(HI,A(9),Lchain),
@@ -162,6 +195,7 @@ def cave_ST(text, base):  # entry hook: reset flags@state0; result 1->3 @state5 
          ldr_w(9,16,0xC8), cbnz_w(9,A(35),Ldone),                   # wild HP == 0 (verified KO)
          ldrb_w(9,16,0xF8), cbz_w(9,A(37),Ldone),                   # 36,37 pwb_encounter still set
          ldr_w(9,16,0xCC), cbz_w(9,A(39),Ldone),                    # 38,39 species != 0 (valid capture)
+         ] + strict_block + [
          movz_w(9,3), str_w(9,10,0x508),              # result = 3 ("fainted, no capture")
          movz_w(9,1), strb_w(9,16,0xFD),              # done = 1
          strb_w(9,16,0xFF),                           # evolve_pending = 1 (A4)
@@ -234,14 +268,15 @@ def cave_E(text, base):  # A4: after-battle next-state redirect 4 -> 1 when evol
 # variant's caves keep stable addresses (byte-for-byte reproducible). Each module declares the
 # variants that include it and a human note on the scratch slots it touches (the scratch page
 # is a shared blackboard, not per-module private, so this is documentation for the manifest).
-def module_table(profile):
+def module_table(profile, hp_gate='slot6'):
     timer = (profile != 'timed')   # 'classic' (default) removes the 300s wild-battle timer
+    strict_gate = (hp_gate == 'strict')   # 'slot6' (default) = byte-identical v0.6 gate
     return [
         dict(key='A',  hook=HOOK_A,  build=lambda t,b: cave_A(t,b,timer=timer),
              variants={'addon','main','catch'}, scratch='clear_cnt +0x34, armed +0xFC; (v0.6) timer evt+0x562'),
         dict(key='C',  hook=HOOK_C,  build=cave_C,  variants={'addon','main','catch'},
              scratch='c_entry +0xB0, guard_hit +0xD8; gated on pwb_encounter +0xF8'),
-        dict(key='ST', hook=HOOK_ST, build=cave_ST, variants={'addon','main'},
+        dict(key='ST', hook=HOOK_ST, build=lambda t,b: cave_ST(t,b,strict_gate=strict_gate), variants={'addon','main'},
              scratch='state +0x40, mask +0x44, result +0x58, rewrite +0xE0, armed/done/have/evolve +0xFC..FF'),
         dict(key='R',  hook=HOOK_R,  build=cave_R,  variants={'addon','main'},
              scratch='wild_hp +0xC8, species +0xCC, maxhp +0xD0, slot +0xD4, have +0xFE; gated on +0xF8'),
@@ -262,10 +297,10 @@ VARIANT_ORDER = {
     'catch': dict(redir=['A','C','P','E'],          body=['A','C','P','E','M']),
 }
 
-def lay_out(text, profile):
+def lay_out(text, profile, hp_gate='slot6'):
     """Assign every module a cave base consecutively; build and return {key: info}."""
     caves, base = {}, CAVE_BASE
-    for m in module_table(profile):
+    for m in module_table(profile, hp_gate):
         w = m['build'](text, base)
         caves[m['key']] = dict(m, base=base, words=w)
         base += len(w) * 4
@@ -303,9 +338,36 @@ def verify_caves(text, caves):
             for t in succs:
                 if t in depth: assert depth[t] == d_out, (key, 'depth conflict', hex(t), depth[t], d_out)
                 else: depth[t] = d_out; work.append(t)
-    assert disp(text, HOOK_P) == 0xF9404008, "0x9D8A30 not the expected ldr x8,[x0,#0x80]; wrong build?"
-    assert disp(text, HOOK_R) == 0xF81C0FF7, "0x9E41D0 not the expected str x23,[sp,#-0x40]!; wrong build?"
-    assert disp(text, HOOK_E) == 0xB9006A68, "0x319EC4 not the expected str w8,[x19,#0x68]; wrong build?"
+
+def verify_preimages(text):
+    """Every hook site in text.bin holds the exact instruction we expect to displace."""
+    for mem, expect in PREIMAGE.items():
+        got = struct.unpack_from('<I', text, mem)[0]
+        assert got == expect, ("preimage mismatch (wrong NSO build?)", hex(mem),
+                               "got 0x%08X want 0x%08X" % (got, expect))
+
+def verify_cave_padding(text, caves):
+    """The portion of the cave region present in text.bin is zero padding (no live code).
+    (Bytes past len(text) are loader-provided zero page padding, not carved into the file.)"""
+    cave_end = max(c['base'] + len(c['words']) * 4 for c in caves.values())
+    assert cave_end <= CAVE_END_PAGE, ("caves overflow .text padding", hex(cave_end))
+    assert len(text) >= CAVE_BASE, ("text.bin shorter than cave base", hex(len(text)))
+    seg = text[CAVE_BASE:min(cave_end, len(text))]
+    nz = next((CAVE_BASE + i for i, v in enumerate(seg) if v), None)
+    assert nz is None, ("cave region is not zero padding at", hex(nz) if nz else None)
+
+def verify_pwb_marker(merged):
+    """The intentional overlap is only safe if PWB's own record writes the marker store at
+    HOOK_M. Find the base-PWB record covering HOOK_M (not our 4-byte redirect) and assert it."""
+    for mem, data in merged:
+        if mem != HOOK_M and mem <= HOOK_M < mem + len(data):
+            off = HOOK_M - mem
+            if off + 4 <= len(data):
+                word = struct.unpack_from('<I', data, off)[0]
+                assert word == PWB_MARKER_WORD, (
+                    "PWB record does not write the marker at HOOK_M", "0x%08X" % word)
+                return
+    raise SystemExit("PWB marker record not found covering HOOK_M (wrong base Wild Battles mod?)")
 
 def variant_records(variant, caves):
     """(mem, bytes) records for a variant, in the exact order the pre-registry builder used."""
@@ -343,10 +405,10 @@ def emit(records, path, header_comment):
     lines.append("@stop")
     Path(path).write_text("\n".join(lines) + "\n")
 
-def write_manifest(path, profile, caves, outputs):
+def write_manifest(path, profile, caves, outputs, hp_gate='slot6'):
     import json, hashlib
     man = dict(
-        nsobid=NSOBID, profile=profile, cave_base=hex(CAVE_BASE),
+        nsobid=NSOBID, profile=profile, hp_gate=hp_gate, cave_base=hex(CAVE_BASE),
         cave_end=hex(max(c['base'] + len(c['words']) * 4 for c in caves.values())),
         modules={k: dict(hook=hex(c['hook']), cave=hex(c['base']), words=len(c['words']),
                          variants=sorted(c['variants']), scratch=c['scratch'])
@@ -366,12 +428,19 @@ def main():
     ap.add_argument('--out-catch-unified', help='unified CATCH variant: XP but keep the post-KO catch screen (no A3)')
     ap.add_argument('--profile', default='classic', choices=['classic', 'timed'],
                     help="classic (default): remove the 300s wild-battle timer; timed: keep it")
+    ap.add_argument('--hp-gate', default='slot6', choices=['slot6', 'strict'],
+                    help="slot6 (default): shipped v0.6 A3 gate (byte-identical); strict: also "
+                         "require slot==12 and max_hp>0 (Finding B; ship-gated on live verification)")
     ap.add_argument('--manifest', help='also write a build manifest (JSON) to this path')
+    ap.add_argument('--verify-manifest', metavar='PATH',
+                    help='after building, assert each output sha256 matches this committed manifest')
     a = ap.parse_args()
     text = Path(a.text).read_bytes()
 
-    caves = lay_out(text, a.profile)
+    verify_preimages(text)
+    caves = lay_out(text, a.profile, a.hp_gate)
     verify_caves(text, caves)
+    verify_cave_padding(text, caves)
     outputs = {}
 
     addon = variant_records('addon', caves)
@@ -384,6 +453,7 @@ def main():
     if a.out_unified:
         assert a.pwb, "--pwb required for --out-unified"
         merged = load_pwb(a.pwb) + variant_records('main', caves)
+        verify_pwb_marker(merged)
         overlap_check('unified', merged)
         emit(merged, a.out_unified,
              ["// Wild Battles EXP (UNIFIED) - base Wild Battles + native wild-KO EXP in ONE mod.",
@@ -398,6 +468,7 @@ def main():
         # post-KO catch screen stays. It includes hook E purely to clear pwb_encounter after each
         # battle (cave_E's A4 redirect stays inert: evolve_pending is only set by cave_ST, omitted here).
         merged2 = load_pwb(a.pwb) + variant_records('catch', caves)
+        verify_pwb_marker(merged2)
         overlap_check('catch', merged2)
         emit(merged2, a.out_catch_unified,
              ["// Wild Battles EXP - CATCH VARIANT (unified). Battle -> KO -> native EXP ->",
@@ -408,8 +479,19 @@ def main():
         outputs['catch'] = (a.out_catch_unified, merged2)
 
     if a.manifest:
-        write_manifest(a.manifest, a.profile, caves, outputs)
+        write_manifest(a.manifest, a.profile, caves, outputs, a.hp_gate)
         print("wrote", a.manifest)
+
+    if a.verify_manifest:
+        import json, hashlib
+        ref = json.loads(Path(a.verify_manifest).read_text())
+        refout = ref.get('outputs', {})
+        for name, (p, _recs) in outputs.items():
+            want = refout.get(name, {}).get('sha256')
+            got = hashlib.sha256(Path(p).read_bytes()).hexdigest()
+            assert want is not None, ("no committed hash for output", name, a.verify_manifest)
+            assert got == want, ("artifact drift vs committed manifest", name, got, want)
+        print("verified %d artifact hash(es) against %s" % (len(outputs), a.verify_manifest))
 
 if __name__ == '__main__':
     main()

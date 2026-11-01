@@ -1,0 +1,7 @@
+# SYNTHETIC negative fixture (hand-written, not a real capture).
+# A single KO episode rewrites the result TWICE (REWRITE_CNT 0->2 within one episode) — the
+# one-shot guard failed. FAILs in BOTH permissive and strict (E2 delta != 1).
+[00:00:00] connected base=0x80000000
+[00:00:01] states=[] result=0 | PWB_ENC=0 clear=0 guard=0 A2_PWB=0 armed=0 have=0 WILD_HP=0 SPECIES=0 MAXHP=0 SLOT=0 done=0 REWRITE_CNT=0
+[00:00:02] states=[0 1 2 3 4] result=1 | PWB_ENC=1 clear=1 guard=1 A2_PWB=1 armed=1 have=0 WILD_HP=0 SPECIES=0 MAXHP=0 SLOT=0 done=0 REWRITE_CNT=0
+[00:00:03] states=[0 1 2 3 4 5 6 7 8] result=3 | PWB_ENC=0 clear=1 guard=1 A2_PWB=1 armed=1 have=1 WILD_HP=0 SPECIES=16 MAXHP=22 SLOT=12 done=1 REWRITE_CNT=2

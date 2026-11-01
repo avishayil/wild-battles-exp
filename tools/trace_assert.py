@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Replay a scratchread trace and assert the Wild Battles EXP invariants.
 
-Usage: python3 -I tools/trace_assert.py <scratchread.log> [more.log ...]
+Usage: python3 -I tools/trace_assert.py [--strict] <scratchread.log> [more.log ...]
 
 The reader (tools/scratchread.py) logs one line per *change* of the scratch state, e.g.:
 
@@ -12,21 +12,33 @@ Fields persist between logged lines (change-only log). Each reader (re)connect s
 *session* (scratch is .bss and zeroes on relaunch). An *episode* is one PWB encounter: it
 begins when PWB_ENC goes 0->1 and ends when it returns to 0.
 
-Invariants:
+Invariants (permissive, always checked):
   G1  REWRITE_CNT is monotonic non-decreasing within a session.
   G2  `clear` (hook A) and `A2_PWB` (hook P) only increase while PWB_ENC==1 (no hook activity
       outside a PWB encounter — trainer/overworld stay vanilla).
-  E1  Every episode that sets the marker also clears it (no leak into the next battle).
+  E1  Every *closed* episode that sets the marker also clears it (no leak into the next battle).
   E2  A KO episode (done reaches 1): on the rewrite row result==3, WILD_HP==0, SLOT==12,
       SPECIES!=0, and REWRITE_CNT increments by exactly 1 over the episode.
   E3  A non-KO episode (flee / timeout / blackout — done never 1) never increments
       REWRITE_CNT and never sets done.
 
-Exit 0 = all invariants hold; 1 = at least one violation (printed).
+Strict mode (`--strict`, for a *completed* regression trace rather than a truncated debug one)
+adds — these are the checks that distinguish "a hook only fired inside an episode" from "the
+episode was actually classified and resolved correctly":
+  S1  No episode may still be open at session end (the marker MUST have cleared). A permissive
+      run only *notes* an open episode; a strict run FAILs it (stale-marker / missing-termination).
+  S2  The rewrite event is *located*: in a KO episode REWRITE_CNT increments on exactly the row
+      where `done` first becomes 1 (rewrite coincides with the KO decision, not merely "sometime
+      in the episode"), and that row additionally has MAXHP>0.
+  S3  Identity is present on every KO row (SLOT/SPECIES/MAXHP recorded) — fail-closed if the
+      reader did not capture opponent identity, so we never bless an un-classified rewrite.
+
+Exit 0 = all invariants hold; 1 = at least one violation (printed) or an unparseable file.
 """
 import sys, re
 
 FIELD = re.compile(r'(\w+)=(-?\d+)')
+
 
 def parse(path):
     sessions, cur = [], []
@@ -48,7 +60,8 @@ def parse(path):
     if cur: sessions.append(cur)
     return sessions
 
-def check(path):
+
+def check(path, strict=False):
     sessions = parse(path)
     fails = []
     def fail(msg): fails.append(msg)
@@ -82,7 +95,10 @@ def check(path):
                 if pe == 0:
                     episodes.append(ep); ep = None
         if ep is not None:
-            open_eps += 1  # still active at session end — noted, not failed
+            open_eps += 1  # still active at session end
+            if strict:
+                # S1: a completed regression trace must not end mid-episode (stale marker)
+                fail(f"[{ep[0]['ts']}] S1 episode never cleared the marker (open at session end)")
         for e in episodes:
             n_ep += 1
             rw0, rw1 = e[0].get('REWRITE_CNT', 0), e[-1].get('REWRITE_CNT', 0)
@@ -97,6 +113,20 @@ def check(path):
                 if k.get('SLOT') != 12:    fail(f"[{k['ts']}] E2 KO SLOT={k.get('SLOT')} (want 12)")
                 if k.get('SPECIES', 0) == 0: fail(f"[{k['ts']}] E2 KO SPECIES==0")
                 if rw1 - rw0 != 1:         fail(f"[{e[0]['ts']}] E2 KO REWRITE_CNT delta {rw1-rw0} (want 1)")
+                if strict:
+                    # S3: identity must be recorded on the KO row (fail-closed on un-classified KO)
+                    for fld in ('SLOT', 'SPECIES', 'MAXHP'):
+                        if k.get(fld) is None:
+                            fail(f"[{k['ts']}] S3 KO row missing identity field {fld}")
+                    if k.get('MAXHP', 0) <= 0:
+                        fail(f"[{k['ts']}] S3 KO MAXHP={k.get('MAXHP')} (want > 0)")
+                    # S2: the rewrite increment must land on the done-transition row, not elsewhere
+                    rw_rows = [i for i in range(1, len(e))
+                               if e[i].get('REWRITE_CNT', 0) > e[i-1].get('REWRITE_CNT', 0)]
+                    done_row = next(i for i, r in enumerate(e) if r.get('done') == 1)
+                    if rw_rows and rw_rows != [done_row]:
+                        fail(f"[{k['ts']}] S2 rewrite rows {rw_rows} != done row [{done_row}] "
+                             "(rewrite not coincident with KO decision)")
             else:
                 n_non += 1
                 if rw1 != rw0:             fail(f"[{e[0]['ts']}] E3 non-KO changed REWRITE_CNT {rw0}->{rw1}")
@@ -104,19 +134,27 @@ def check(path):
 
     status = "OK" if not fails else "FAIL"
     note = f", {open_eps} open at session end" if open_eps else ""
-    print(f"{path}: {status} — {len(sessions)} session(s), {n_ep} episodes "
+    mode = "strict" if strict else "permissive"
+    print(f"{path}: {status} [{mode}] — {len(sessions)} session(s), {n_ep} episodes "
           f"({n_ko} KO, {n_non} non-KO){note}")
     for f in fails:
         print("  ✗", f)
     return fails
 
+
 def main():
-    if len(sys.argv) < 2:
+    args = sys.argv[1:]
+    strict = False
+    if '--strict' in args:
+        strict = True
+        args = [a for a in args if a != '--strict']
+    if not args:
         print(__doc__); sys.exit(2)
     allf = []
-    for p in sys.argv[1:]:
-        allf += check(p)
+    for p in args:
+        allf += check(p, strict=strict)
     sys.exit(1 if allf else 0)
+
 
 if __name__ == '__main__':
     main()

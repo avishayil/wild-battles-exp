@@ -1,0 +1,53 @@
+name: CI
+
+# Offline validation only — this workflow NEVER needs the copyrighted game files
+# (text.bin / NSO / keys / saves). It checks the generator's pure logic, the committed
+# patch artifacts against the manifest, and the trace-assertion regression fixtures.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install capstone
+        run: python -m pip install --upgrade pip capstone
+
+      - name: Guard — no game files may be tracked
+        run: |
+          set -e
+          BAD=$(git ls-files | grep -E '(^|/)(text\.bin|main_dec\.bin)$|\.(nso|nca|xci|tik|sav)$|prod\.keys$' || true)
+          if [ -n "$BAD" ]; then
+            echo "::error::game-derived files are tracked:"; echo "$BAD"; exit 1
+          fi
+          echo "clean: no NSO / keys / saves tracked"
+
+      - name: Encoder + branch-range unit tests
+        run: python -I tests/test_encoders.py
+
+      - name: Trace-assertion regression fixtures
+        run: python -I tests/test_trace_assert.py
+
+      - name: Lint committed mods + manifest integrity
+        run: python -I tests/lint_mods.py
+
+      - name: Release layout sanity (each variant is <Mod>/exefs/*.pchtxt)
+        run: |
+          set -e
+          find mods -name '*.pchtxt' | while read -r f; do
+            case "$f" in
+              */exefs/*.pchtxt) : ;;
+              *) echo "::error::$f is not under a <Mod>/exefs/ directory"; exit 1 ;;
+            esac
+          done
+          echo "ok: all committed mods use the Eden exefs layout"

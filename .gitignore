@@ -24,5 +24,7 @@ __pycache__/
 # local tooling logs
 scratchread.log
 *.log
-# ...but DO track committed trace fixtures (regression/research data)
+# ...but DO track committed trace fixtures (regression/research data), including the
+# synthetic negative fixtures under tools/fixtures/negative/ used by the CI trace tests.
 !tools/fixtures/*.log
+!tools/fixtures/**/*.log

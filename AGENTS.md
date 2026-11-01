@@ -54,7 +54,11 @@ to PWB's own encounters. Hooks (all in the code cave, see `docs/FUNCTION_MAP.md`
 - **A4** `0x319EC4` — redirect the after-battle transition so a KO level-up evolves; clears
   `pwb_encounter` each battle.
 
-The **Catch Variant** omits A3/A4 (keeps the post-KO catch screen).
+The **Catch Variant** omits **A3** (result rewrite) and **R** (HP capture) so the post-KO catch
+screen stays. It **retains hook E** (the A4 site) purely to clear `pwb_encounter` after each
+battle — E's evolution redirect is inert there, because `evolve_pending` (`+0xFF`) is only set by
+A3, which this variant omits. (So "omits A3/A4" is imprecise: the A4 *hook* still runs, just as a
+marker-cleanup no-op.)
 
 ## Scratch instrumentation (read with `tools/scratchread.py`)
 

@@ -105,7 +105,14 @@ Developed and verified on **Eden** (macOS, Apple Silicon / MoltenVK).
 Wild battles created by PWB1 reuse the game's *legendary / Snorlax* "special battle" system,
 which is wired to **end instantly with no faint and no EXP**. This mod flips that battle onto the
 normal faint → reward path, fills the gaps the special-battle setup leaves behind, and **scopes
-every change to PWB's own encounters** so it never touches a real battle.
+every change to PWB's own encounters** (via the `pwb_encounter` identity) so it is designed never
+to touch a real battle.
+
+> **Isolation — verified vs. still open.** Ordinary wild / trainer / flee / capture / blackout /
+> save-reload are live-verified clean. Isolation against genuine **scripted special battles**
+> (Snorlax, legendaries, the Power Plant Electrode) is **not yet live-tested** — the enclosing
+> PWB setup is reached by virtual dispatch, so it can't be proven offline. This is the one open
+> gate before a stable release; see [`docs/WBEXP_STATIC_CALLGRAPH.md`](docs/WBEXP_STATIC_CALLGRAPH.md).
 
 | Piece | Hook (NSO offset) | Effect |
 |---|---|---|
