@@ -168,12 +168,12 @@ def cave_C(text, base):   # PoC C v2: model-joint guard (recomp port), gated on 
             movz_x(0,0), RET,                                       # 23,24 no-joint
             LDP_1617, disp(text,HOOK_C), b(A(27),HOOK_C+4)]         # 25=Lrest restore, 26=Lorig, 27 return
 
-def cave_ST(text, base, strict_gate=False):  # entry hook: reset flags@state0; result 1->3 @state5 on VERIFIED KO (one-shot)
-    # strict_gate (Finding B, OPT-IN — default build is byte-identical to v0.6): before the
-    # rewrite, additionally require the captured opponent to be the wild slot (slot==12) with a
-    # real max HP (>0), rejecting an unusual extra participant that overwrote the HP capture.
-    # Default (slot6) keeps the shipped v0.6 gate; promote to default only after a live
-    # multi-species confirmation that slot==12/max_hp>0 always hold (see docs/V061_SAFETY_PLAN.md).
+def cave_ST(text, base, strict_gate=True):  # entry hook: reset flags@state0; result 1->3 @state5 on VERIFIED KO (one-shot)
+    # strict_gate (Finding B, DEFAULT since v0.6.2): before the rewrite, additionally require the
+    # captured opponent to be the wild slot (slot==12) with a real max HP (>0), rejecting an unusual
+    # extra participant that overwrote the HP capture. Promoted to default after live-accept across
+    # Weedle/Pidgey/Rattata/Oddish (all slot==12 & maxhp>0; docs/LIVE_TESTING.md). `--hp-gate slot6`
+    # restores the older v0.6 gate (have && wild_HP==0 only).
     A = lambda i: base+i*4
     extra = 5 if strict_gate else 0
     Lnot0, Lchain, Ldone = A(8), A(15), A(48 + extra)
@@ -268,9 +268,9 @@ def cave_E(text, base):  # A4: after-battle next-state redirect 4 -> 1 when evol
 # variant's caves keep stable addresses (byte-for-byte reproducible). Each module declares the
 # variants that include it and a human note on the scratch slots it touches (the scratch page
 # is a shared blackboard, not per-module private, so this is documentation for the manifest).
-def module_table(profile, hp_gate='slot6'):
+def module_table(profile, hp_gate='strict'):
     timer = (profile != 'timed')   # 'classic' (default) removes the 300s wild-battle timer
-    strict_gate = (hp_gate == 'strict')   # 'slot6' (default) = byte-identical v0.6 gate
+    strict_gate = (hp_gate == 'strict')   # 'strict' (default since v0.6.2); 'slot6' = older v0.6 gate
     return [
         dict(key='A',  hook=HOOK_A,  build=lambda t,b: cave_A(t,b,timer=timer),
              variants={'addon','main','catch'}, scratch='clear_cnt +0x34, armed +0xFC; (v0.6) timer evt+0x562'),
@@ -428,9 +428,10 @@ def main():
     ap.add_argument('--out-catch-unified', help='unified CATCH variant: XP but keep the post-KO catch screen (no A3)')
     ap.add_argument('--profile', default='classic', choices=['classic', 'timed'],
                     help="classic (default): remove the 300s wild-battle timer; timed: keep it")
-    ap.add_argument('--hp-gate', default='slot6', choices=['slot6', 'strict'],
-                    help="slot6 (default): shipped v0.6 A3 gate (byte-identical); strict: also "
-                         "require slot==12 and max_hp>0 (Finding B; ship-gated on live verification)")
+    ap.add_argument('--hp-gate', default='strict', choices=['slot6', 'strict'],
+                    help="strict (default, v0.6.2+): A3 KO gate also requires slot==12 and max_hp>0 "
+                         "(Finding B; promoted after live-accept across Weedle/Pidgey/Rattata/Oddish, "
+                         "all slot==12 & maxhp>0). slot6: the older v0.6 gate (have && wild_HP==0 only)")
     ap.add_argument('--manifest', help='also write a build manifest (JSON) to this path')
     ap.add_argument('--verify-manifest', metavar='PATH',
                     help='after building, assert each output sha256 matches this committed manifest')
