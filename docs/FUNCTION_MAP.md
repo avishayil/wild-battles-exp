@@ -23,6 +23,7 @@ at memory offset `M`, the pchtxt record address is **`M + 0x100`**.
 | `0x9D3BA0` | Early-out `cbz` at `0x9D3BAC` on `[setup+0x4A4]` is a **null/empty-context guard — DO NOT remove** (removing it dereferenced null → crash). **Formerly mapped as the "EXP amount" function; that interpretation was disproven** — see [`research/EXP_SEAM_INVESTIGATION.md`](../research/EXP_SEAM_INVESTIGATION.md). On a PWB wild KO the only live caller (`0xA65540`) hits the `+0x4A4==1` guard, returns **0**, and the result is discarded by a `cbz`, so this is **not** the awarded-EXP source. PWB EXP is actually applied on the eligible-predicate branch inside reward processor **`0x9F28B8`** (the exact amount instruction is not yet pinned). A2 forcing eligibility is what makes native EXP flow; the hypothesis that `0x9D3BA0` computed PWB's amount is historical. |
 | `0x319A60` | **After-battle processor** (`x0→x19`; state `[x19+0x68]`; jump table rodata `0xF4D08C`-style at `0xF4E564`, states 0..4). State-0 handler at `0x319EAC` picks the next state from the battle result `[bd+0x508]`: `1→state 3`, else `→state 4` (state 4 skips evolution; state 1 runs it). |
 | `0xA9C650` | Model-joint lookup. Reads `[model+0x192]` (byte), `[model+0x1e8]`, `[model+0x1e0]`; two tails (`0xA9C690` proceed / `0xA9C790` safe) do `ldr x8,[x0,#0x48]!; ldr x8,[x8,#0x10]; blr x8` on the resource. |
+| `0xab1dd0` | **Battle command-menu decide** (`CMD_DECIDE`, recomp Eevee `0xab1e80`). Reads the pressed button's id into `w20` at `0xab1e34` (`ldr w20,[x0,#4]`; event = `{u32 type, u32 id}` written by the invoke callbacks at `0xab49c0+`), then a 7-way jump table (`0xf9823c`) maps id→action at `[x21+0x10]`. **RUN = id 4** (live-confirmed). Not hooked by the shipped mod; mapped for the shelved v0.7 Integrated Catch — see [`../research/CATCH_STEP1_MENU_RE.md`](../research/CATCH_STEP1_MENU_RE.md). |
 
 ## Key fields (relative to the battle-event object `evt`, i.e. `[x0]` at `0x28BD20`)
 | Offset | Meaning |
@@ -45,7 +46,7 @@ at memory offset `M`, the pchtxt record address is **`M + 0x100`**.
 | `[b+0x78]` | species (u16; confirmed 16 = Pidgey) |
 | `[b+0x7c]` | max HP (u16) |
 | `[b+0x7e]` | **current HP** (u16; 0 after a KO — the A3 gate reads the captured copy) |
-| `[b+0x87]` | battle-slot id (byte; 0–5 = player party, **12 = the wild Pokémon**). v0.5 live: observed `12` on 84/84 captured samples across 4+ species — safe to tighten `>=6` to `==12` if ever desired. |
+| `[b+0x87]` | battle-slot id (byte; 0–5 = player party, **12 = the wild Pokémon**). **v0.6.2:** the strict A3 gate (now default) requires `slot==12 && max_hp>0`; live-accept confirmed `slot==12` on every wild KO across Weedle/Pidgey/Rattata/Oddish (and the v0.5 fixture had 84/84). |
 Reflect fires at battle end (KO **and** flee), so the capture also records a live HP on flee — which is exactly what lets the A3 gate reject non-KO endings.
 
 ## Model fields (relative to `model = x0` in `0xA9C650`)

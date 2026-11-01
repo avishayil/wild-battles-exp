@@ -42,9 +42,9 @@ cave").
   assertions, and a **PWB-marker** check before the one intentional overlap is allowed). A
   non-zero exit means the build is rejected — never ship past it. **Never hand-edit the generated
   `.pchtxt` files; change the generator.** Flags: `--profile classic` (default; removes the
-  wild-battle timer) / `timed` (keeps it); `--hp-gate slot6` (default; shipped v0.6 A3 gate,
-  byte-identical) / `strict` (also require slot==12 and max_hp>0 — Finding B, ship-gated on live
-  verification); `--manifest <path>` writes a JSON build record (build-id, profile, hp-gate,
+  wild-battle timer) / `timed` (keeps it); `--hp-gate strict` (default since v0.6.2; A3 KO gate also
+  requires slot==12 and max_hp>0 — Finding B, promoted on live-accept across 4 species) / `slot6`
+  (older v0.6 gate, have && wild_HP==0 only); `--manifest <path>` writes a JSON build record (build-id, profile, hp-gate,
   per-module cave offsets, variant membership, scratch map, output record counts + SHA-256);
   `--verify-manifest <path>` asserts each output's SHA-256 matches a committed manifest.
 - **`tools/trace_assert.py`** — replays a `scratchread` trace and asserts the runtime invariants

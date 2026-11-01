@@ -8,7 +8,7 @@
 **Defeat a wild Pokémon → earn real experience.**
 Native battle EXP for wild knockouts in *Pokémon: Let's Go, Pikachu!* — entirely through the game's own battle, faint, EXP and evolution code.
 
-[![Release](https://img.shields.io/badge/release-v0.6.0--beta-e67e22)](https://github.com/avishayil/wild-battles-exp/releases)
+[![Release](https://img.shields.io/badge/release-v0.6.2--beta-e67e22)](https://github.com/avishayil/wild-battles-exp/releases)
 [![License](https://img.shields.io/badge/license-MIT-3498db)](LICENSE.md)
 ![Game](https://img.shields.io/badge/Let's%20Go%20Pikachu-v1.0.2-f1c40f)
 ![Emulator](https://img.shields.io/badge/Eden-MoltenVK-9b59b6)
@@ -167,6 +167,11 @@ MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS=1 MVK_CONFIG_VK_SEMAPHORE_SUPPORT_STYLE=0 \
   award no false EXP; progress persists across a relaunch and the mod re-arms.
 - ✅ **No 5-minute timer** in ordinary wild battles (v0.6) — the "MATCH TIME" limit is removed for
   PWB wilds only (verified >5 min with no timeout); genuine static battles keep their countdown.
+- ✅ **Strict KO gate is the default (v0.6.2).** The A3 result rewrite now also requires the
+  captured opponent to be the wild slot (`slot==12`) with a real `max_hp>0`, rejecting any stray
+  participant. Promoted after an autonomous live-accept run confirmed `slot==12 & maxhp>0` on every
+  wild KO across Weedle/Pidgey/Rattata/Oddish (`docs/LIVE_TESTING.md`). `--hp-gate slot6` restores
+  the older gate.
 - ⛔ **OPEN GATE — real legendary / scripted encounters (e.g. the Route 12/16 Snorlax):** PWB
   reuses that same battle system, so isolation is designed to exclude them, but this has **not
   been tested on a live static encounter yet** (the development save is early-game). Until that
@@ -184,11 +189,20 @@ MVK_CONFIG_SYNCHRONOUS_QUEUE_SUBMITS=1 MVK_CONFIG_VK_SEMAPHORE_SUPPORT_STYLE=0 \
   live-verified.
 - **v0.6.0-beta — classic battles + modular builder (done):** the 5-minute wild-battle timer is
   removed; the generator is a hook-module registry with build-time profiles and a build manifest.
+- **v0.6.1 — offline safety validation (done):** builder/trace-assert hardening, preimage &
+  cave-padding & manifest-drift checks, game-file-free CI (`docs/V061_SAFETY_PLAN.md`).
+- **v0.6.2-beta — strict KO gate default + autonomous test harness (done):** `--hp-gate strict`
+  promoted to default on live-accept evidence, gathered by a new fully-autonomous wild-battle
+  harness (`tools/e2e_autoplay_pump.py`) that drives Eden from boot through battles over the gdbstub
+  (`docs/LIVE_TESTING.md`).
+- **v0.7 research — Integrated Catch (shelved):** a feasibility study
+  (`docs/CATCH_FEASIBILITY_V070.md`) + command-menu RE (`research/CATCH_STEP1_MENU_RE.md`) found that
+  catching mid-battle isn't achievable as a static patch without repurposing the RUN button; the
+  owner chose to keep the **Catch Variant** instead. Shelved, documented.
 - **Next:** validate scripted **Snorlax and legendary** encounter isolation (the open
   static-encounter gate before a public beta); then the **Catch Variant** double-EXP check. EXP
   multipliers (75%/50%) are **deferred** pending identification of the actual EXP grant path (see
-  `research/EXP_SEAM_INVESTIGATION.md`); an in-battle CATCH action and shiny/scripted edge cases
-  are future work.
+  `research/EXP_SEAM_INVESTIGATION.md`).
 
 ## Contributing & reproducing
 

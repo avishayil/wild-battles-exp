@@ -89,7 +89,12 @@ Strengthen `build_patch.py` so more corruption fails at build time (keep default
 hook-site/cave/branch assumption makes the build fail with a precise message. A unit test exercises
 each new assertion with a crafted bad input.
 
-### 1.5 Stricter HP/identity gate (Finding B) — **done (opt-in `--hp-gate strict`), ship-gated on live**
+### 1.5 Stricter HP/identity gate (Finding B) — **done; PROMOTED TO DEFAULT in v0.6.2**
+> **Update (v0.6.2):** the strict gate is now the **default** (`--hp-gate strict`), after the live
+> acceptance below was met — `slot==12 & maxhp>0` on every wild KO across Weedle/Pidgey/Rattata/
+> Oddish, gathered by the autonomous harness (`docs/LIVE_TESTING.md`). `--hp-gate slot6` restores the
+> old gate. The text below is the original v0.6.1 plan (when strict was opt-in).
+
 - Add an **opt-in** generator option (default = current behavior, byte-identical). The strict path
   tightens A3/ST to require, on the rewrite: `pwb_encounter && captured_slot == 12 &&
   captured_species != 0 && captured_max_hp > 0 && captured_hp == 0 && result == 1 &&

@@ -1,9 +1,9 @@
 {
   "nsobid": "C208DB6A4EF4361F28B8402BE0F7CD9A00000000000000000000000000000000",
   "profile": "classic",
-  "hp_gate": "slot6",
+  "hp_gate": "strict",
   "cave_base": "0xd32ba8",
-  "cave_end": "0xd32e54",
+  "cave_end": "0xd32e68",
   "modules": {
     "A": {
       "hook": "0x28bf34",
@@ -30,7 +30,7 @@
     "ST": {
       "hook": "0x28bd20",
       "cave": "0xd32c78",
-      "words": 55,
+      "words": 60,
       "variants": [
         "addon",
         "main"
@@ -39,7 +39,7 @@
     },
     "R": {
       "hook": "0x9e41d0",
-      "cave": "0xd32d54",
+      "cave": "0xd32d68",
       "words": 20,
       "variants": [
         "addon",
@@ -49,7 +49,7 @@
     },
     "E": {
       "hook": "0x319ec4",
-      "cave": "0xd32da4",
+      "cave": "0xd32db8",
       "words": 13,
       "variants": [
         "addon",
@@ -60,7 +60,7 @@
     },
     "P": {
       "hook": "0x9d8a30",
-      "cave": "0xd32dd8",
+      "cave": "0xd32dec",
       "words": 23,
       "variants": [
         "addon",
@@ -71,7 +71,7 @@
     },
     "M": {
       "hook": "0x3059b8",
-      "cave": "0xd32e34",
+      "cave": "0xd32e48",
       "words": 8,
       "variants": [
         "addon",
@@ -85,17 +85,17 @@
     "addon": {
       "path": "mods/addon-only (needs base Wild Battles)/Wild Battles EXP Addon/exefs/wbexp_addon.pchtxt",
       "records": 14,
-      "sha256": "80e833442127caff1ef697c845f6ad74c639e901dcf39b246761b560f300e59a"
+      "sha256": "728caa2456fd08cdad52549b2d5d4a09590eadd78e0aaed672456be7f551f8a3"
     },
     "unified": {
       "path": "mods/Wild Battles EXP/exefs/wild_battles_exp.pchtxt",
       "records": 37,
-      "sha256": "d3949cd9f30af99de847415756c9c6677cde61afbec300f38d64984ee2ba51c3"
+      "sha256": "f7cc0cbe97b74e78570516c8a48e8bcb8dacfaa3e18acd53345289bb2aa33aa8"
     },
     "catch": {
       "path": "mods/Wild Battles EXP (Catch Variant)/exefs/wild_battles_exp_catch.pchtxt",
       "records": 33,
-      "sha256": "2a63f60684f3680568e275c4451124291997c0ab8da2dd9ce7f966650dcb5ab9"
+      "sha256": "faa5cbb932228185af6b83bbdd33f627fe14bd66539bb9d9a9330a7e8b27078e"
     }
   }
 }

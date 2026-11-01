@@ -13,6 +13,7 @@ address/offset data (independent interoperability research) — no game code, as
 | [EXPERIMENT_LOG.md](EXPERIMENT_LOG.md) | The crash-isolation control matrix (EXP mod × tracer × party/follower × crash), which exonerated the environment and pointed at the addressing bug. |
 | [INVESTIGATION_NOTES.md](INVESTIGATION_NOTES.md) | The post-faint crash (PoC C) investigation: ruling out the condvar theory, pinning the model-joint guard. |
 | [EXP_SEAM_INVESTIGATION.md](EXP_SEAM_INVESTIGATION.md) | Workstream F (EXP multipliers) research checkpoint — the ruled-out candidates, the F1 probe result, and the award-path strategy for resuming. Paused pending the real EXP grant path. Tooling: `tools/probe_exp*.py`, `tools/probe_f1*.py`, fixture `tools/fixtures/f1-trace-20261101.log`. |
+| [CATCH_STEP1_MENU_RE.md](CATCH_STEP1_MENU_RE.md) | v0.7 Integrated Catch step-1: offline RE of the 1.0.2 battle command menu (`CMD_DECIDE 0xab1dd0`, button id in `w20@0xab1e34`, RUN = id 4, live-confirmed). Verdict: a distinct 5th CATCH button is **not** static-feasible; only a RUN-repurpose is. Feature shelved — see [`../docs/CATCH_FEASIBILITY_V070.md`](../docs/CATCH_FEASIBILITY_V070.md). |
 
 See also [`../docs/WBEXP_STATIC_CALLGRAPH.md`](../docs/WBEXP_STATIC_CALLGRAPH.md) — the static
 call-graph analysis of PWB's injection seam (the v0.4.1 encounter-exclusivity question).

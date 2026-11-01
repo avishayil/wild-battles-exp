@@ -137,3 +137,36 @@ First "classic battle" release and a maintainability pass on the generator.
 - Differential vs v0.5.0-beta: the only patch-byte change is `cave_A` (the timer-clear).
 - Inherits the deferred gate: the live scripted-Snorlax / legendary isolation test. The timer
   removal is isolation-safe by construction (PWB-gated) but shares that one pending live check.
+
+## v0.6.1 — offline safety validation
+Hardening pass with no gameplay change (default build byte-identical to v0.6.0).
+- **Builder self-checks.** `build_patch.py` gained per-hook preimage verification (each hook site
+  must still hold its expected original instruction), code-cave padding checks, a branch-range
+  check, and `--verify-manifest` (assert each output's SHA-256 matches the committed manifest).
+- **`--hp-gate {slot6,strict}` (opt-in at this version).** `strict` adds `slot==12 && max_hp>0` to
+  the A3 KO gate; default stayed `slot6` (byte-identical) pending live acceptance.
+- **Trace-assert `--strict`** (complete-session / rewrite-coincides-with-KO / identity-present) +
+  negative fixtures; **game-file-free CI** (encoders, trace-assert, mod lint — no ROM needed).
+
+## v0.6.2-beta — strict KO gate default + autonomous test harness
+Promotes the strict KO gate to the default build, backed by live evidence gathered autonomously.
+- **Strict KO gate is now the default.** The A3 result rewrite (`cave_ST`) additionally requires the
+  captured opponent to be the wild slot (`slot==12`) with a real `max_hp>0`, rejecting any stray
+  participant that overwrote the HP capture. `--hp-gate slot6` restores the older v0.6 gate.
+- **Live-accept evidence (current Eden build `de7e6e01d4-master`).** Every wild KO showed
+  `slot==12 & maxhp>0` across 4 distinct species — Weedle (13), Pidgey (16), Rattata (19),
+  Oddish (43), all `result=3` with the A3 rewrite firing. This clears the live check the gate's
+  promotion was waiting on. (The scripted-Snorlax/legendary isolation gate remains separately open.)
+- **Autonomous test harness (`tools/e2e_autoplay_pump.py`).** A throwaway capture tool that drives
+  Eden fully hands-off from boot on this fragile build (which halts the guest at every battle-scene
+  stop): it continuously pumps `$c`, A-taps through the boot/controller/save menus, roams the grass
+  (held WASD), auto-battles each wild Pokémon to KO, records per-encounter `slot/species/maxhp`,
+  prints the strict-gate verdict, and force-quits Eden. Input must be held/tapped *across* a `$c`
+  run-window (an instantaneous tap never lands). Not shipped; see `docs/LIVE_TESTING.md`.
+- **Regenerated artifacts.** All three mods + `build-manifest.json` rebuilt with the strict default
+  (manifest `hp_gate: strict`); build passes preimage + cave-padding + overlap + PWB-marker checks.
+- **v0.7 Integrated Catch — researched and shelved.** `docs/CATCH_FEASIBILITY_V070.md` +
+  `research/CATCH_STEP1_MENU_RE.md`: catching mid-battle is not static-feasible as a 5th button
+  (needs runtime view/callback wiring); the only static path repurposes RUN (`CMD_DECIDE 0xab1dd0`,
+  button id in `w20@0xab1e34`, RUN = id 4, live-confirmed). The owner declined that UX, so the
+  shipped **Catch Variant** remains the "battle-then-catch" answer.
